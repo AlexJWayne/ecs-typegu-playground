@@ -1,4 +1,4 @@
-import { EntityId } from "bitecs"
+import { type EntityId } from "bitecs"
 
 export const Position = {
   x: [] as number[],

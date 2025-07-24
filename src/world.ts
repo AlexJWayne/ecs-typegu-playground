@@ -2,7 +2,7 @@ import {
   addComponent,
   addEntity,
   query,
-  World,
+  type World,
   removeEntity,
   hasComponent,
 } from "bitecs"
@@ -21,7 +21,7 @@ import { randomOnZero, randomRange } from "./math"
 const SIZE = 800
 
 export function spawnCells(world: World) {
-  if (Math.random() > 0.98) spawnCell(world)
+  if (Math.random() > 0.95) spawnCell(world)
 }
 
 export function birthCells(world: World) {

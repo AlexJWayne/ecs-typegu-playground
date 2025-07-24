@@ -1,5 +1,6 @@
-import { createWorld, World } from "bitecs"
+import { createWorld, type World } from "bitecs"
 import { renderWorld, setupCanvas } from "./canvas"
+import * as canvasGl from "./canvas-gl"
 import {
   applyDrag,
   birthCells,
@@ -15,6 +16,7 @@ let world: World
 
 function main() {
   setupCanvas()
+  canvasGl.setupCanvasGl()
   world = createWorld()
 
   requestAnimationFrame(tick)

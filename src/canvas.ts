@@ -1,18 +1,12 @@
-import { query, World } from "bitecs"
+import { query, type World } from "bitecs"
 import { Cell, Lifetime, Position, Radius, TrailParticle } from "./components"
-import tgpu from "typegpu"
-import { f32 } from "typegpu/data"
 
 let canvas = document.createElement("canvas")
 let ctx: CanvasRenderingContext2D
 
-const root = await tgpu.init()
-const foo = tgpu.fn([f32], f32)((x) => x * 2)
-console.log(foo(123))
-
 export function setupCanvas(): HTMLCanvasElement {
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
+  canvas.width = 800
+  canvas.height = 800
   document.body.appendChild(canvas)
   return canvas
 }

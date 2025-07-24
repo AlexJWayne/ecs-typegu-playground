@@ -10,13 +10,17 @@
   },
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
     "bitecs": "github:NateTheGreatt/bitECS#rc-0-4-0",
     "tsx": "^4.20.3",
     "typegpu": "^0.6.0"
   },
   "devDependencies": {
+    "@webgpu/types": "^0.1.64",
     "prettier": "^3.6.2",
+    "typescript": "^5.9.0-beta",
+    "unplugin-typegpu": "^0.2.0",
     "vite": "^7.0.0"
   }
 }
