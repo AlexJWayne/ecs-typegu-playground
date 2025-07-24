@@ -1,0 +1,22 @@
+{
+  "name": "bitecs4play",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bitecs": "github:NateTheGreatt/bitECS#rc-0-4-0",
+    "tsx": "^4.20.3",
+    "typegpu": "^0.6.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "vite": "^7.0.0"
+  }
+}
