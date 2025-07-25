@@ -1,4 +1,4 @@
-import { createWorld, type World } from "bitecs"
+import { createWorld, getAllEntities, type World } from "bitecs"
 import { renderWorld, setupCanvas } from "./canvas"
 import * as canvasGl from "./canvas-gl"
 import {
