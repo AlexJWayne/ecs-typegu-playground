@@ -11,6 +11,8 @@ import {
   updateLifetimes,
   updatePositions,
 } from "./world"
+import { renderCells } from "./cell.render"
+import { renderTrailParticles } from "./trail-particle.render"
 
 let world: World
 
@@ -35,6 +37,9 @@ function tick() {
   killCells(world)
 
   renderWorld(world)
+
+  renderTrailParticles(world)
+  renderCells(world)
 
   requestAnimationFrame(tick)
 }

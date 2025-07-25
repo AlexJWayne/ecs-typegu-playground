@@ -1,0 +1,114 @@
+import { query, type World } from "bitecs"
+import { Cell, Position, Radius } from "./components"
+import tgpu from "typegpu"
+import {
+  struct,
+  vec2f,
+  f32,
+  builtin,
+  vec4f,
+  vec3f,
+  arrayOf,
+  type Infer,
+} from "typegpu/data"
+import { sub, atan2, sin, length } from "typegpu/std"
+import {
+  root,
+  presentationFormat,
+  ctx,
+  quadUV,
+  quadToClipSpace,
+  step,
+} from "./canvas-gl"
+
+export function renderCells(world: World) {
+  const cells = query(world, [Cell, Position])
+  if (cells.length === 0) return
+
+  if (cells.length > cellData.length) {
+    throw new Error(
+      `Buffer too small. Need ${cells.length} but only have ${cellData.length}`,
+    )
+  }
+
+  for (const [i, cell] of cells.entries()) {
+    cellData[i].pos.x = Position.x[cell]
+    cellData[i].pos.y = Position.y[cell]
+    cellData[i].size = Radius[cell]
+  }
+  cellBuffer.write(cellData)
+
+  cellPipeline
+    .withColorAttachment({
+      view: ctx.getCurrentTexture().createView(),
+      loadOp: "load",
+      storeOp: "store",
+    })
+    .draw(6, cells.length)
+}
+
+const CellData = struct({
+  pos: vec2f,
+  size: f32,
+})
+
+const cellVertShader = tgpu["~unstable"].vertexFn({
+  in: {
+    pos: vec2f,
+    size: f32,
+    idx: builtin.vertexIndex,
+  },
+  out: {
+    pos: builtin.position,
+    uv: vec2f,
+  },
+})(({ pos, size, idx }) => ({
+  pos: quadToClipSpace(pos, size, idx),
+  uv: quadUV(idx),
+}))
+
+const cellFragShader = tgpu["~unstable"].fragmentFn({
+  in: { uv: vec2f },
+  out: vec4f,
+})(({ uv }) => {
+  const theta = atan2(uv.y, uv.x)
+  const wavy = sin(theta * 12) * 0.03
+  const fromCenter = sub(1, length(uv)) - wavy
+  const alpha = step(0.2, fromCenter)
+  return vec4f(vec3f(1), alpha)
+})
+
+const cellBufferCapacity = 200
+const cellData: Infer<typeof CellData>[] = Array.from(
+  { length: cellBufferCapacity },
+  () => ({
+    pos: vec2f(),
+    size: 0,
+  }),
+)
+const cellBuffer = root
+  .createBuffer(arrayOf(CellData, cellBufferCapacity), cellData)
+  .$usage("vertex")
+
+const cellLayout = tgpu.vertexLayout(
+  (n: number) => arrayOf(CellData, n),
+  "instance",
+)
+
+const cellPipeline = root["~unstable"]
+  .withVertex(cellVertShader, cellLayout.attrib)
+  .withFragment(cellFragShader, {
+    format: presentationFormat,
+    blend: {
+      color: {
+        srcFactor: "src-alpha",
+        dstFactor: "one-minus-src-alpha",
+      },
+      alpha: {
+        srcFactor: "src-alpha",
+        dstFactor: "one-minus-src-alpha",
+      },
+    },
+  })
+  .createPipeline()
+  .with(cellLayout, cellBuffer)

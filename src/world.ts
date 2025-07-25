@@ -137,10 +137,10 @@ function spawnTrailParticle(
   Position.set(id, x, y)
   Velocity.set(
     id, //
-    vx + randomOnZero(2),
-    vy + randomOnZero(2),
+    vx + randomOnZero(1.5),
+    vy + randomOnZero(1.5),
   )
-  Radius[id] = randomRange(1, 3)
-  Drag[id] = 0.95 + Radius[id] / 100
+  Radius[id] = randomRange(1, 4)
+  Drag[id] = 0.98
   Lifetime.init(id, randomRange(50, 150))
 }
