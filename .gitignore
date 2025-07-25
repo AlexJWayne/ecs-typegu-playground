@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.*
+
+# IDE-specific files (example for VS Code)
+.vscode/
+.DS_Store # macOS specific
+
+# TypeScript specific
+*.tsbuildinfo
