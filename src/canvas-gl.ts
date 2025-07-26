@@ -1,13 +1,13 @@
 import tgpu from "typegpu"
 import { builtin, f32, vec2f, vec4f } from "typegpu/data"
-import { add, div, mul, sub } from "typegpu/std"
+import { add, cos, div, mul, sin, sub } from "typegpu/std"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.createElement("canvas")
 export let ctx: GPUCanvasContext
 export const root = await tgpu.init()
 
-const canvasSize = 800
+export const canvasSize = 800
 
 export function setupCanvasGl(): void {
   canvas.width = canvasSize
@@ -60,32 +60,14 @@ export const step = tgpu.fn([f32, f32], f32)`(edge, x) {
   return step(edge, x);
 }`
 
-// const quadVertexShader = tgpu["~unstable"].vertexFn({
-//   in: {
-//     pos: vec2f,
-//     size: f32,
-//     idx: builtin.vertexIndex,
-//   },
-//   out: {
-//     pos: builtin.position,
-//     uv: vec2f,
-//   },
-// })(({ pos, size, idx }) => {
-//   const vertices = [
-//     vec2f(-1, -1),
-//     vec2f(-1, 1),
-//     vec2f(1, 1),
-//     vec2f(1, 1),
-//     vec2f(1, -1),
-//     vec2f(-1, -1),
-//   ]
-
-//   const vertPos = add(pos, mul(size, vertices[idx]))
-//   const screenPos = mul(sub(div(vertPos, 800), 0.5), 2)
-//   screenPos.y *= -1
-
-//   return {
-//     pos: vec4f(screenPos, 0, 1),
-//     uv: vertices[idx],
-//   }
-// })
+export const rotateVec2 = tgpu.fn(
+  [vec2f, f32],
+  vec2f,
+)((vec, angle) => {
+  const cosAngle = cos(angle)
+  const sinAngle = sin(angle)
+  return vec2f(
+    vec.x * cosAngle - vec.y * sinAngle,
+    vec.x * sinAngle + vec.y * cosAngle,
+  )
+})

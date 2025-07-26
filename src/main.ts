@@ -17,7 +17,7 @@ import { renderTrailParticles } from "./trail-particle.render"
 let world: World
 
 function main() {
-  setupCanvas()
+  // setupCanvas()
   canvasGl.setupCanvasGl()
   world = createWorld()
 
@@ -36,7 +36,7 @@ function tick() {
   moveCells(world)
   killCells(world)
 
-  renderWorld(world)
+  // renderWorld(world)
 
   renderTrailParticles(world)
   renderCells(world)

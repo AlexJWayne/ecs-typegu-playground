@@ -1,5 +1,11 @@
 import { query, type World } from "bitecs"
-import { Lifetime, Position, Radius, TrailParticle } from "./components"
+import {
+  Lifetime,
+  Position,
+  Radius,
+  TrailParticle,
+  Velocity,
+} from "./components"
 import tgpu from "typegpu"
 import {
   struct,
@@ -11,7 +17,17 @@ import {
   type Infer,
   vec3f,
 } from "typegpu/data"
-import { sub, length, min, max } from "typegpu/std"
+import {
+  sub,
+  length,
+  min,
+  max,
+  add,
+  div,
+  mul,
+  rotateX4,
+  atan2,
+} from "typegpu/std"
 import {
   root,
   presentationFormat,
@@ -19,10 +35,12 @@ import {
   quadUV,
   quadToClipSpace,
   step,
+  rotateVec2,
+  canvasSize,
 } from "./canvas-gl"
 
 export function renderTrailParticles(world: World) {
-  const particles = query(world, [TrailParticle, Position, Lifetime])
+  const particles = query(world, [TrailParticle, Position, Velocity, Lifetime])
   if (particles.length === 0) return
 
   if (particles.length > particlesData.length) {
@@ -36,6 +54,8 @@ export function renderTrailParticles(world: World) {
 
     particle.pos.x = Position.x[id]
     particle.pos.y = Position.y[id]
+    particle.velocity.x = Velocity.x[id]
+    particle.velocity.y = Velocity.y[id]
     particle.size = Radius[id]
     particle.completion = Lifetime.completion(id)
   }
@@ -52,6 +72,7 @@ export function renderTrailParticles(world: World) {
 
 const ParticleData = struct({
   pos: vec2f,
+  velocity: vec2f,
   size: f32,
   completion: f32,
 })
@@ -60,6 +81,7 @@ const particleVertShader = tgpu["~unstable"].vertexFn({
   in: {
     idx: builtin.vertexIndex,
     pos: vec2f,
+    velocity: vec2f,
     size: f32,
     completion: f32,
   },
@@ -68,11 +90,30 @@ const particleVertShader = tgpu["~unstable"].vertexFn({
     uv: vec2f,
     completion: f32,
   },
-})(({ idx, pos, size, completion }) => ({
-  pos: quadToClipSpace(pos, size, idx),
-  uv: quadUV(idx),
-  completion,
-}))
+})(({ idx, pos, velocity, size, completion }) => {
+  const quadVertices = [
+    vec2f(-1, -1),
+    vec2f(-1, 1),
+    vec2f(1, 1),
+    vec2f(1, 1),
+    vec2f(1, -1),
+    vec2f(-1, -1),
+  ]
+  let localVert = mul(size, quadVertices[idx])
+  localVert.x *= 1 + length(velocity)
+
+  const heading = atan2(velocity.y, velocity.x)
+  localVert = rotateVec2(localVert, heading)
+
+  const worldPos = add(pos, localVert)
+  const screenPos = mul(sub(div(worldPos, canvasSize), 0.5), 2)
+  screenPos.y *= -1
+  return {
+    pos: vec4f(screenPos, 0, 1),
+    uv: quadVertices[idx],
+    completion,
+  }
+})
 
 const particleFragShader = tgpu["~unstable"].fragmentFn({
   in: { uv: vec2f, completion: f32 },
@@ -94,6 +135,7 @@ const particlesData: Infer<typeof ParticleData>[] = Array.from(
   { length: particleBufferCapacity },
   () => ({
     pos: vec2f(),
+    velocity: vec2f(),
     size: 0,
     completion: 0,
   }),

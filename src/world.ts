@@ -21,7 +21,7 @@ import { randomOnZero, randomRange } from "./math"
 const SIZE = 800
 
 export function spawnCells(world: World) {
-  if (Math.random() > 0.95) spawnCell(world)
+  if (Math.random() > 0.94) spawnCell(world)
 }
 
 export function birthCells(world: World) {
