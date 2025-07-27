@@ -22,25 +22,7 @@ export function setupCanvasGl(): void {
   })
 }
 
-export const quadToClipSpace = tgpu.fn(
-  [vec2f, f32, builtin.vertexIndex],
-  vec4f,
-)((pos, size, idx) => {
-  const quadVertices = [
-    vec2f(-1, -1),
-    vec2f(-1, 1),
-    vec2f(1, 1),
-    vec2f(1, 1),
-    vec2f(1, -1),
-    vec2f(-1, -1),
-  ]
-  const vertPos = add(pos, mul(size, quadVertices[idx]))
-  const screenPos = mul(sub(div(vertPos, 800), 0.5), 2)
-  screenPos.y *= -1
-  return vec4f(screenPos, 0, 1)
-})
-
-export const quadUV = tgpu.fn(
+export const quadVert = tgpu.fn(
   [builtin.vertexIndex],
   vec2f,
 )((idx) => {
@@ -53,6 +35,14 @@ export const quadUV = tgpu.fn(
     vec2f(-1, -1),
   ]
   return quadVertices[idx]
+})
+
+export const worldToClipSpace = tgpu.fn(
+  [vec2f],
+  vec4f,
+)((pos) => {
+  const xy = mul(sub(div(pos, canvasSize), 0.5), 2)
+  return vec4f(xy, 0, 1)
 })
 
 export const step = tgpu.fn([f32, f32], f32)`(edge, x) {

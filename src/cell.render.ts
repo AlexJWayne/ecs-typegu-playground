@@ -11,14 +11,14 @@ import {
   arrayOf,
   type Infer,
 } from "typegpu/data"
-import { sub, atan2, sin, length } from "typegpu/std"
+import { sub, atan2, sin, length, mul, add } from "typegpu/std"
 import {
   root,
   presentationFormat,
   ctx,
-  quadUV,
-  quadToClipSpace,
   step,
+  quadVert,
+  worldToClipSpace,
 } from "./canvas-gl"
 
 export function renderCells(world: World) {
@@ -62,10 +62,13 @@ const cellVertShader = tgpu["~unstable"].vertexFn({
     pos: builtin.position,
     uv: vec2f,
   },
-})(({ pos, size, idx }) => ({
-  pos: quadToClipSpace(pos, size, idx),
-  uv: quadUV(idx),
-}))
+})(({ pos, size, idx }) => {
+  const localPos = quadVert(idx)
+  return {
+    pos: worldToClipSpace(add(mul(size, localPos), pos)),
+    uv: localPos,
+  }
+})
 
 const cellFragShader = tgpu["~unstable"].fragmentFn({
   in: { uv: vec2f },

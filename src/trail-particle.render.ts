@@ -24,6 +24,8 @@ import {
   step,
   rotateVec2,
   canvasSize,
+  worldToClipSpace,
+  quadVert,
 } from "./canvas-gl"
 
 export function renderTrailParticles(world: World) {
@@ -84,17 +86,15 @@ const particleVertShader = tgpu["~unstable"].vertexFn({
     vec2f(1, -1),
     vec2f(-1, -1),
   ]
-  let localVert = mul(size, quadVertices[idx])
+  let localVert = mul(size, quadVert(idx))
   localVert.x *= 1 + length(velocity)
 
   const heading = atan2(velocity.y, velocity.x)
   localVert = rotateVec2(localVert, heading)
 
   const worldPos = add(pos, localVert)
-  const screenPos = mul(sub(div(worldPos, canvasSize), 0.5), 2)
-  screenPos.y *= -1
   return {
-    pos: vec4f(screenPos, 0, 1),
+    pos: worldToClipSpace(worldPos),
     uv: quadVertices[idx],
     completion,
   }
