@@ -6,7 +6,6 @@ export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.createElement("canvas")
 export let ctx: GPUCanvasContext
 export const root = await tgpu.init()
-
 export const canvasSize = 800
 
 export function setupCanvasGl(): void {

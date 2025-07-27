@@ -15,25 +15,12 @@ import {
   vec4f,
   arrayOf,
   type Infer,
-  vec3f,
 } from "typegpu/data"
-import {
-  sub,
-  length,
-  min,
-  max,
-  add,
-  div,
-  mul,
-  rotateX4,
-  atan2,
-} from "typegpu/std"
+import { sub, length, min, add, div, mul, atan2 } from "typegpu/std"
 import {
   root,
   presentationFormat,
   ctx,
-  quadUV,
-  quadToClipSpace,
   step,
   rotateVec2,
   canvasSize,
@@ -43,14 +30,18 @@ export function renderTrailParticles(world: World) {
   const particles = query(world, [TrailParticle, Position, Velocity, Lifetime])
   if (particles.length === 0) return
 
-  if (particles.length > particlesData.length) {
-    throw new Error(
-      `Buffer too small. Need ${particles.length} but only have ${particlesData.length}`,
-    )
+  if (particles.length > pipeline.particlesData.length) {
+    pipeline.particlesBuffer.destroy()
+
+    pipeline = createPipeline({
+      capacity: pipeline.particlesData.length + 1000,
+      existingData: pipeline.particlesData,
+    })
   }
 
-  for (const [i, id] of particles.entries()) {
-    const particle = particlesData[i]
+  for (let i = 0; i < particles.length; i++) {
+    const id = particles[i]
+    const particle = pipeline.particlesData[i]
 
     particle.pos.x = Position.x[id]
     particle.pos.y = Position.y[id]
@@ -59,15 +50,9 @@ export function renderTrailParticles(world: World) {
     particle.size = Radius[id]
     particle.completion = Lifetime.completion(id)
   }
-  particlesBuffer.write(particlesData)
+  pipeline.particlesBuffer.write(pipeline.particlesData)
 
-  particlesPipeline
-    .withColorAttachment({
-      view: ctx.getCurrentTexture().createView(),
-      loadOp: "load",
-      storeOp: "store",
-    })
-    .draw(6, particles.length)
+  pipeline.render(particles.length)
 }
 
 const ParticleData = struct({
@@ -130,39 +115,63 @@ const particleFragShader = tgpu["~unstable"].fragmentFn({
   )
 })
 
-const particleBufferCapacity = 10000
-const particlesData: Infer<typeof ParticleData>[] = Array.from(
-  { length: particleBufferCapacity },
-  () => ({
-    pos: vec2f(),
-    velocity: vec2f(),
-    size: 0,
-    completion: 0,
-  }),
-)
-const particlesBuffer = root
-  .createBuffer(arrayOf(ParticleData, particleBufferCapacity), particlesData)
-  .$usage("vertex")
-
 const particlesLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(ParticleData, n),
   "instance",
 )
 
-const particlesPipeline = root["~unstable"]
-  .withVertex(particleVertShader, particlesLayout.attrib)
-  .withFragment(particleFragShader, {
-    format: presentationFormat,
-    blend: {
-      color: {
-        srcFactor: "src-alpha",
-        dstFactor: "one-minus-src-alpha",
+let pipeline = createPipeline({ capacity: 0 })
+
+function createPipeline({
+  capacity,
+  existingData,
+}: {
+  capacity: number
+  existingData?: Infer<typeof ParticleData>[]
+}) {
+  console.log("Expanded trail particle capacity to", capacity)
+
+  const particlesData = Array.from(
+    { length: capacity },
+    (_, i): Infer<typeof ParticleData> =>
+      existingData?.[i] || {
+        pos: vec2f(),
+        velocity: vec2f(),
+        size: 0,
+        completion: 0,
       },
-      alpha: {
-        srcFactor: "src-alpha",
-        dstFactor: "one-minus-src-alpha",
+  )
+
+  const particlesBuffer = root
+    .createBuffer(arrayOf(ParticleData, capacity || 1), particlesData)
+    .$usage("vertex")
+
+  const particlesPipeline = root["~unstable"]
+    .withVertex(particleVertShader, particlesLayout.attrib)
+    .withFragment(particleFragShader, {
+      format: presentationFormat,
+      blend: {
+        color: {
+          srcFactor: "src-alpha",
+          dstFactor: "one-minus-src-alpha",
+        },
+        alpha: {
+          srcFactor: "src-alpha",
+          dstFactor: "one-minus-src-alpha",
+        },
       },
-    },
-  })
-  .createPipeline()
-  .with(particlesLayout, particlesBuffer)
+    })
+    .createPipeline()
+    .with(particlesLayout, particlesBuffer)
+
+  function render(instances: number) {
+    particlesPipeline
+      .withColorAttachment({
+        view: ctx.getCurrentTexture().createView(),
+        loadOp: "load",
+        storeOp: "store",
+      })
+      .draw(6, instances)
+  }
+  return { particlesData, particlesBuffer, render }
+}
