@@ -6,7 +6,11 @@ import {
   TrailParticle,
   Velocity,
 } from "./components"
-import tgpu from "typegpu"
+import tgpu, {
+  type TgpuBuffer,
+  type TgpuRenderPipeline,
+  type VertexFlag,
+} from "typegpu"
 import {
   struct,
   vec2f,
@@ -15,15 +19,16 @@ import {
   vec4f,
   arrayOf,
   type Infer,
+  type Vec4f,
+  type WgslArray,
 } from "typegpu/data"
-import { sub, length, min, add, div, mul, atan2 } from "typegpu/std"
+import { sub, length, min, add, mul, atan2 } from "typegpu/std"
 import {
   root,
   presentationFormat,
   ctx,
   step,
   rotateVec2,
-  canvasSize,
   worldToClipSpace,
   quadVert,
 } from "./canvas-gl"
@@ -32,18 +37,11 @@ export function renderTrailParticles(world: World) {
   const particles = query(world, [TrailParticle, Position, Velocity, Lifetime])
   if (particles.length === 0) return
 
-  if (particles.length > pipeline.particlesData.length) {
-    pipeline.particlesBuffer.destroy()
-
-    pipeline = createPipeline({
-      capacity: pipeline.particlesData.length + 1000,
-      existingData: pipeline.particlesData,
-    })
-  }
+  pipeline.ensureCapacity(particles.length)
 
   for (let i = 0; i < particles.length; i++) {
     const id = particles[i]
-    const particle = pipeline.particlesData[i]
+    const particle = pipeline.instances[i]
 
     particle.pos.x = Position.x[id]
     particle.pos.y = Position.y[id]
@@ -52,7 +50,7 @@ export function renderTrailParticles(world: World) {
     particle.size = Radius[id]
     particle.completion = Lifetime.completion(id)
   }
-  pipeline.particlesBuffer.write(pipeline.particlesData)
+  pipeline.getBuffer().write(pipeline.instances)
 
   pipeline.render(particles.length)
 }
@@ -64,7 +62,7 @@ const ParticleData = struct({
   completion: f32,
 })
 
-const particleVertShader = tgpu["~unstable"].vertexFn({
+const vertShader = tgpu["~unstable"].vertexFn({
   in: {
     idx: builtin.vertexIndex,
     pos: vec2f,
@@ -100,7 +98,7 @@ const particleVertShader = tgpu["~unstable"].vertexFn({
   }
 })
 
-const particleFragShader = tgpu["~unstable"].fragmentFn({
+const fragShader = tgpu["~unstable"].fragmentFn({
   in: { uv: vec2f, completion: f32 },
   out: vec4f,
 })(({ uv, completion }) => {
@@ -115,40 +113,19 @@ const particleFragShader = tgpu["~unstable"].fragmentFn({
   )
 })
 
-const particlesLayout = tgpu.vertexLayout(
+const layout = tgpu.vertexLayout(
   (n: number) => arrayOf(ParticleData, n),
   "instance",
 )
 
-let pipeline = createPipeline({ capacity: 0 })
+let pipeline = createPipeline({ pageSize: 1000 })
 
-function createPipeline({
-  capacity,
-  existingData,
-}: {
-  capacity: number
-  existingData?: Infer<typeof ParticleData>[]
-}) {
-  console.log("Expanded trail particle capacity to", capacity)
+function createPipeline({ pageSize }: { pageSize: number }) {
+  const instances: Infer<typeof ParticleData>[] = []
 
-  const particlesData = Array.from(
-    { length: capacity },
-    (_, i): Infer<typeof ParticleData> =>
-      existingData?.[i] || {
-        pos: vec2f(),
-        velocity: vec2f(),
-        size: 0,
-        completion: 0,
-      },
-  )
-
-  const particlesBuffer = root
-    .createBuffer(arrayOf(ParticleData, capacity || 1), particlesData)
-    .$usage("vertex")
-
-  const particlesPipeline = root["~unstable"]
-    .withVertex(particleVertShader, particlesLayout.attrib)
-    .withFragment(particleFragShader, {
+  const unboundPipeline = root["~unstable"]
+    .withVertex(vertShader, layout.attrib)
+    .withFragment(fragShader, {
       format: presentationFormat,
       blend: {
         color: {
@@ -162,16 +139,47 @@ function createPipeline({
       },
     })
     .createPipeline()
-    .with(particlesLayout, particlesBuffer)
 
-  function render(instances: number) {
-    particlesPipeline
+  let buffer: TgpuBuffer<WgslArray<typeof ParticleData>> & VertexFlag
+  let pipeline: TgpuRenderPipeline<Vec4f>
+
+  function ensureCapacity(count: number) {
+    if (count <= instances.length) return
+
+    for (let i = 0; i < pageSize; i++) {
+      instances.push({
+        pos: vec2f(),
+        velocity: vec2f(),
+        size: 0,
+        completion: 0,
+      })
+    }
+    // console.log("Expanded trail particle capacity to", particlesData.length)
+
+    buffer?.destroy()
+    buffer = root
+      .createBuffer(arrayOf(ParticleData, instances.length || 1), instances)
+      .$usage("vertex")
+
+    pipeline = unboundPipeline.with(layout, buffer)
+  }
+
+  function render(count: number) {
+    if (count === 0) return
+
+    pipeline
       .withColorAttachment({
         view: ctx.getCurrentTexture().createView(),
         loadOp: "load",
         storeOp: "store",
       })
-      .draw(6, instances)
+      .draw(6, count)
   }
-  return { particlesData, particlesBuffer, render }
+
+  return {
+    instances,
+    getBuffer: () => buffer,
+    ensureCapacity,
+    render,
+  }
 }
