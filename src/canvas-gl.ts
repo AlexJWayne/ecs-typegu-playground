@@ -1,6 +1,6 @@
 import tgpu from "typegpu"
 import { builtin, f32, vec2f, vec4f } from "typegpu/data"
-import { add, cos, div, mul, sin, sub } from "typegpu/std"
+import { cos, div, mul, sin, sub } from "typegpu/std"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.createElement("canvas")

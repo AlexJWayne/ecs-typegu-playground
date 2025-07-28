@@ -21,6 +21,9 @@ import {
   type Infer,
   type Vec4f,
   type WgslArray,
+  type AnyWgslStruct,
+  type WgslStruct,
+  type BaseData,
 } from "typegpu/data"
 import { sub, length, min, add, mul, atan2 } from "typegpu/std"
 import {
@@ -118,10 +121,27 @@ const layout = tgpu.vertexLayout(
   "instance",
 )
 
-let pipeline = createPipeline({ pageSize: 1000 })
+let pipeline = createPipeline({
+  pageSize: 1000,
+  schema: ParticleData,
+  initial: () => ({
+    pos: vec2f(),
+    velocity: vec2f(),
+    size: 0,
+    completion: 0,
+  }),
+})
 
-function createPipeline({ pageSize }: { pageSize: number }) {
-  const instances: Infer<typeof ParticleData>[] = []
+function createPipeline<T extends AnyWgslStruct>({
+  pageSize,
+  schema,
+  initial,
+}: {
+  pageSize: number
+  schema: T
+  initial: () => Infer<NoInfer<T>>
+}) {
+  const instances: Infer<T>[] = []
 
   const unboundPipeline = root["~unstable"]
     .withVertex(vertShader, layout.attrib)
@@ -140,25 +160,20 @@ function createPipeline({ pageSize }: { pageSize: number }) {
     })
     .createPipeline()
 
-  let buffer: TgpuBuffer<WgslArray<typeof ParticleData>> & VertexFlag
+  let buffer: TgpuBuffer<WgslArray<T>> & VertexFlag
   let pipeline: TgpuRenderPipeline<Vec4f>
 
   function ensureCapacity(count: number) {
     if (count <= instances.length) return
 
     for (let i = 0; i < pageSize; i++) {
-      instances.push({
-        pos: vec2f(),
-        velocity: vec2f(),
-        size: 0,
-        completion: 0,
-      })
+      instances.push(initial())
     }
     // console.log("Expanded trail particle capacity to", particlesData.length)
 
     buffer?.destroy()
     buffer = root
-      .createBuffer(arrayOf(ParticleData, instances.length || 1), instances)
+      .createBuffer(arrayOf(schema, instances.length || 1), instances)
       .$usage("vertex")
 
     pipeline = unboundPipeline.with(layout, buffer)

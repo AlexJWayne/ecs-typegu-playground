@@ -78,7 +78,7 @@ const cellFragShader = tgpu["~unstable"].fragmentFn({
   const wavy = sin(theta * 12) * 0.03
   const fromCenter = sub(1, length(uv)) - wavy
   const alpha = step(0.2, fromCenter)
-  return vec4f(vec3f(1), alpha)
+  return vec4f(0.5, fromCenter, 1, alpha)
 })
 
 const cellBufferCapacity = 200
