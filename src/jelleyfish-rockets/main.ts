@@ -1,5 +1,4 @@
-import { createWorld, getAllEntities, type World } from "bitecs"
-import { renderWorld, setupCanvas } from "./canvas"
+import { createWorld, type World } from "bitecs"
 import * as canvasGl from "./canvas-gl"
 import {
   applyDrag,
@@ -44,4 +43,4 @@ function tick() {
   requestAnimationFrame(tick)
 }
 
-main()
+if (location.search === "?jfr") main()
