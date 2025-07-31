@@ -51,7 +51,7 @@ const vertShader = tgpu["~unstable"].vertexFn({
     uv: vec2f,
   },
 })(({ idx, pos }) => {
-  const size = 0.06
+  const size = 0.04
   const localPos = mul(quadVert(idx), size)
   const worldPos = add(pos, localPos)
   return {
@@ -67,7 +67,7 @@ const fragShader = tgpu["~unstable"].fragmentFn({
   out: vec4f,
 })(({ uv }) => {
   const a = pow(clamp(1 - length(uv), 0, 1), 4)
-  return vec4f(a, 0, 1, a * 0.1)
+  return vec4f(a, 0.1, 1, a * 0.1)
 })
 
 let movePipeline: TgpuComputePipeline
@@ -94,8 +94,14 @@ export function setupParticles() {
     .createBuffer(
       arrayOf(Data, N),
       Array.from({ length: N }).map(() => ({
-        pos: vec2f(0, 0),
-        vel: vec2f(randomOnZero(0.008), randomOnZero(0.008)),
+        pos: vec2f(
+          randomOnZero(0.1), //
+          randomOnZero(0.1),
+        ),
+        vel: vec2f(
+          randomOnZero(0.02), //
+          randomOnZero(0.02),
+        ),
       })),
     )
     .$usage("vertex", "storage")
@@ -124,15 +130,11 @@ export function setupParticles() {
       const pos = item.pos
 
       const mouseDiff = sub(uniforms.value.mousePos, pos)
-      const force = g / max(pow(length(mouseDiff), 1), 0.0001)
+      const force = g / max(pow(length(mouseDiff), 1.5), 0.0001)
 
-      storage.value[idx].vel = mul(
-        add(
-          storage.value[idx].vel, //
-          mul(mouseDiff, force),
-        ),
-        // 0.9995,
-        1,
+      storage.value[idx].vel = add(
+        storage.value[idx].vel, //
+        mul(mouseDiff, force),
       )
 
       const vel = storage.value[idx].vel
@@ -156,11 +158,11 @@ export function setupParticles() {
       blend: {
         color: {
           srcFactor: "src-alpha",
-          dstFactor: "one-minus-src-alpha",
+          dstFactor: "one",
         },
         alpha: {
           srcFactor: "src-alpha",
-          dstFactor: "one-minus-src-alpha",
+          dstFactor: "one",
         },
       },
     })
