@@ -1,5 +1,6 @@
 import tgpu from "typegpu"
 import { renderParticles, setupParticles } from "./particles"
+import { vec2f } from "typegpu/data"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.createElement("canvas")
@@ -8,10 +9,17 @@ export const canvasSize = 800
 
 export let ctx: GPUCanvasContext
 
+export let mouse = vec2f()
+
 export function setupCanvas(): void {
   canvas.width = canvasSize
   canvas.height = canvasSize
   document.body.appendChild(canvas)
+
+  canvas.onmousemove = (event) => {
+    mouse.x = (event.clientX / canvasSize) * 2 - 1
+    mouse.y = -((event.clientY / canvasSize) * 2 - 1)
+  }
 
   ctx = canvas.getContext("webgpu") as GPUCanvasContext
 
