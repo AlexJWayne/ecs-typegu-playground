@@ -53,4 +53,4 @@ function render() {
   renderParticles()
   requestAnimationFrame(render)
 }
-if (location.search === "?mexp") main()
+if (location.search === "?plasma") main()
