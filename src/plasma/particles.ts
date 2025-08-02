@@ -8,28 +8,21 @@ import tgpu, {
 import {
   arrayOf,
   builtin,
+  f32,
   struct,
   vec2f,
   vec4f,
+  type F32,
   type Vec2f,
   type Vec4f,
   type WgslArray,
   type WgslStruct,
 } from "typegpu/data"
 import { quadVert } from "./shader-lib"
-import {
-  abs,
-  add,
-  clamp,
-  length,
-  max,
-  mul,
-  normalize,
-  pow,
-  sub,
-} from "typegpu/std"
-import { ctx, mouse, presentationFormat, root } from "./main"
+import { abs, add, atan2, clamp, length, max, mul, pow, sub } from "typegpu/std"
+import { ctx, forceScale, mouse, presentationFormat, root } from "./main"
 import { randomOnZero } from "../jelleyfish-rockets/math"
+import { rotateVec2 } from "../jelleyfish-rockets/canvas-gl"
 
 const N = 65535
 
@@ -50,10 +43,17 @@ const vertShader = tgpu["~unstable"].vertexFn({
     pos: builtin.position,
     uv: vec2f,
   },
-})(({ idx, pos }) => {
-  const size = 0.04
-  const localPos = mul(quadVert(idx), size)
+})(({ idx, pos, vel }) => {
+  const size = 0.07
+  let localPos = mul(quadVert(idx), size)
+  localPos.x *= 1 + length(vel) * 200
+  localPos.y *= 1 + length(vel) * -50
+
+  const heading = atan2(vel.y, vel.x)
+  localPos = rotateVec2(localPos, heading)
+
   const worldPos = add(pos, localPos)
+
   return {
     pos: vec4f(worldPos, 0, 1),
     uv: quadVert(idx),
@@ -66,8 +66,13 @@ const fragShader = tgpu["~unstable"].fragmentFn({
   },
   out: vec4f,
 })(({ uv }) => {
-  const a = pow(clamp(1 - length(uv), 0, 1), 4)
-  return vec4f(a, 0.1, 1, a * 0.1)
+  const a = clamp(1 - length(uv), 0, 1)
+  return vec4f(
+    pow(a, 5), //
+    pow(a, 15),
+    1,
+    pow(a, 8) * 0.2,
+  )
 })
 
 let movePipeline: TgpuComputePipeline
@@ -86,6 +91,7 @@ let buffer: TgpuBuffer<
 let uniformsBuffer: TgpuBuffer<
   WgslStruct<{
     mousePos: Vec2f
+    forceScale: F32
   }>
 >
 
@@ -111,10 +117,11 @@ export function setupParticles() {
     .createBuffer(
       struct({
         mousePos: vec2f,
+        forceScale: f32,
       }),
     )
     .$usage("storage")
-  const uniforms = uniformsBuffer.as("mutable")
+  const uniforms = uniformsBuffer.as("mutable" as never)
 
   const moveShader = tgpu["~unstable"]
     .computeFn({
@@ -130,7 +137,8 @@ export function setupParticles() {
       const pos = item.pos
 
       const mouseDiff = sub(uniforms.value.mousePos, pos)
-      const force = g / max(pow(length(mouseDiff), 1.5), 0.0001)
+      let force = g / max(pow(length(mouseDiff), 1.5), 0.0001)
+      force *= uniforms.value.forceScale
 
       storage.value[idx].vel = add(
         storage.value[idx].vel, //
@@ -148,7 +156,7 @@ export function setupParticles() {
     .$uses({
       uniforms,
     })
-  console.log(tgpu.resolve({ externals: { moveShader } }))
+  // console.log(tgpu.resolve({ externals: { moveShader } }))
   movePipeline = root["~unstable"].withCompute(moveShader).createPipeline()
 
   renderPipeline = root["~unstable"]
@@ -173,6 +181,7 @@ export function setupParticles() {
 export function renderParticles() {
   uniformsBuffer.write({
     mousePos: mouse,
+    forceScale,
   })
   movePipeline.dispatchWorkgroups(N)
   // buffer.read().then(([data]) => console.log(data.vel.x))
