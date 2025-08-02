@@ -30,7 +30,7 @@ export function setupCanvas(): void {
   }
   canvas.onmouseenter = () => (forceScale = 1)
   canvas.onmouseleave = () => (forceScale = 0)
-  canvas.onmousedown = () => (forceScale = 2)
+  canvas.onmousedown = () => (forceScale = 3)
   canvas.onmouseup = () => (forceScale = 1)
 
   ctx = canvas.getContext("webgpu") as GPUCanvasContext
@@ -43,7 +43,7 @@ export function setupCanvas(): void {
 }
 
 function main() {
-  console.log("mouse explosions")
+  console.log("plasma")
   setupCanvas()
   setupParticles()
   render()
