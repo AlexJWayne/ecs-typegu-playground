@@ -1,6 +1,6 @@
 import tgpu from "typegpu"
-import { renderParticles, setupParticles } from "./particles"
-import { vec2f } from "typegpu/data"
+import { setupParticles } from "./particles"
+import { vec2f, type v2f } from "typegpu/data"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.createElement("canvas")
@@ -23,8 +23,8 @@ export function setupCanvas(): void {
   canvas.style.backgroundColor = "#000"
   document.body.appendChild(canvas)
 
-  const rect = canvas.getBoundingClientRect()
   canvas.onmousemove = (event) => {
+    const rect = canvas.getBoundingClientRect()
     mouse.x = ((event.clientX - rect.left) / canvasSize) * 2 - 1
     mouse.y = -(((event.clientY - rect.top) / canvasSize) * 2 - 1)
   }
@@ -43,14 +43,14 @@ export function setupCanvas(): void {
 }
 
 function main() {
-  console.log("plasma")
   setupCanvas()
-  setupParticles()
+  const renderParticles = setupParticles(root)
+
+  function render() {
+    renderParticles(ctx, mouse, forceScale)
+    requestAnimationFrame(render)
+  }
   render()
 }
 
-function render() {
-  renderParticles()
-  requestAnimationFrame(render)
-}
 if (location.search === "?plasma") main()
