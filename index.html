@@ -2,15 +2,41 @@
   <head>
     <title>Foo</title>
     <script src="./src/plasma/main.ts" type="module"></script>
-    <script src="./src/jelleyfish-rockets/main.ts" type="module"></script>
     <style>
       html,
       body {
-        background-color: #000;
+        background-color: #111;
         margin: 0;
         padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #canvas {
+        background-color: #000;
+      }
+
+      button {
+        padding: 8px 16px;
+        margin: 16px;
+        background-color: #333;
+        border: 0;
+        color: #888;
       }
     </style>
   </head>
-  <body></body>
+  <body>
+    <div id="container">
+      <canvas id="canvas"></canvas>
+      <button id="reset">Reset</button>
+    </div>
+  </body>
 </html>

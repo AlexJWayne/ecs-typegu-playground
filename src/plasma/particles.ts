@@ -10,16 +10,17 @@ import {
   type WgslArray,
 } from "typegpu/data"
 import { quadVert } from "./shader-lib"
-import { abs, atan2, clamp, cos, length, max, pow, sin } from "typegpu/std"
+import { atan2, clamp, cos, length, max, pow, select, sin } from "typegpu/std"
+import { randomRange } from "../jelleyfish-rockets/math"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 
 const NX = 65535
-const NY = 4
+const NY = 8
 const N = NX * NY
 console.log(N.toLocaleString(), "particles")
 
-const SIZE = 0.03
+const SIZE = 0.006
 
 const Instance = struct({
   pos: vec2f,
@@ -47,8 +48,8 @@ const vertShader = tgpu["~unstable"].vertexFn({
   },
 })(({ idx, pos, vel }) => {
   let localPos = quadVert(idx).mul(SIZE)
-  localPos.x *= 1 + length(vel) * 200
-  localPos.y *= 1 + length(vel) * -50
+  localPos.x *= 1 + length(vel) * 800
+  localPos.y *= 1 + length(vel) * -0
 
   const heading = atan2(vel.y, vel.x)
   localPos = rotateVec2(localPos, heading)
@@ -65,12 +66,13 @@ const fragShader = tgpu["~unstable"].fragmentFn({
   in: { uv: vec2f },
   out: vec4f,
 })(({ uv }) => {
-  const a = clamp(1 - length(uv), 0, 1)
+  let a = clamp(1 - length(uv), 0, 1)
+  // a = 1
   return vec4f(
-    pow(a, 5), //
-    pow(a, 15),
+    pow(a, 4), //
+    pow(a, 8),
     1,
-    pow(a, 8) * 0.2,
+    pow(a, 1.2) * 0.2,
   )
 })
 
@@ -88,29 +90,31 @@ function createMoveShader({
     },
     workgroupSize: [16, 16],
   })(({ gid, numWorkgroups }) => {
-    const g = 0.0003
+    const g = 0.0001
 
     const width = 16 * numWorkgroups.x
     const idx = gid.y * width + gid.x
-    const item = instances.value[idx]
-    const pos = item.pos
+    const item = instances.$[idx]
+    let pos = item.pos
 
-    const mouseDiff = uniforms.value.mouse.sub(pos)
-    let force = g / max(pow(length(mouseDiff), 1.5), 0.0001)
-    force *= uniforms.value.forceScale
-
-    instances.value[idx].vel = instances.value[idx].vel.add(
-      mouseDiff.mul(force),
+    const mouseDiff = uniforms.$.mouse.sub(pos)
+    let force = select(
+      g / pow(length(mouseDiff), 1.3),
+      0,
+      length(mouseDiff) === 0,
     )
+    force *= uniforms.$.forceScale
 
-    const vel = instances.value[idx].vel
-    instances.value[idx].pos = pos.add(vel)
+    let vel = item.vel
+    vel = vel.add(mouseDiff.mul(force))
 
-    // todo: I think this is slow. Use a step function instead?
-    if (pos.x > 1) instances.value[idx].vel.x = -abs(vel.x * 0.9)
-    if (pos.x < -1) instances.value[idx].vel.x = abs(vel.x * 0.9)
-    if (pos.y > 1) instances.value[idx].vel.y = -abs(vel.y * 0.9)
-    if (pos.y < -1) instances.value[idx].vel.y = abs(vel.y * 0.9)
+    const bounced = bounce(pos, vel)
+    vel = bounced.vel
+    pos = bounced.pos
+    pos = pos.add(vel)
+
+    instances.$[idx].pos = pos
+    instances.$[idx].vel = vel
   })
   console.log(
     "move shader compiled to:\n\n",
@@ -119,25 +123,53 @@ function createMoveShader({
   return moveShader
 }
 
+const bounce = tgpu.fn(
+  [vec2f, vec2f],
+  struct({ vel: vec2f, pos: vec2f }),
+)((pos, vel) => {
+  const r = vel.x > 0 && pos.x > 1
+  const l = vel.x < 0 && pos.x < -1
+  const t = vel.y > 0 && pos.y > 1
+  const b = vel.y < 0 && pos.y < -1
+
+  const newVel = vec2f(
+    select(vel.x, -vel.x * 0.9, r || l),
+    select(vel.y, -vel.y * 0.9, t || b),
+  )
+
+  const newPos = pos
+  newPos.x = select(newPos.x, +2 - newPos.x, pos.x > 1)
+  newPos.x = select(newPos.x, -2 - newPos.x, pos.x < -1)
+  newPos.y = select(newPos.y, +2 - newPos.y, pos.y > 1)
+  newPos.y = select(newPos.y, -2 - newPos.y, pos.y < -1)
+
+  return {
+    vel: newVel,
+    pos: newPos,
+  }
+})
+
 function createInstances(root: TgpuRoot) {
   const instancesBuffer = root
-    .createBuffer(
-      arrayOf(Instance, N),
-      Array.from({ length: N }).map(() => ({
-        pos: vec2f(
-          randomOnZero(0.1), //
-          randomOnZero(0.1),
-        ),
-        vel: vec2f(
-          randomOnZero(0.02), //
-          randomOnZero(0.02),
-        ),
-      })),
-    )
+    .createBuffer(arrayOf(Instance, N))
     .$usage("vertex", "storage")
   return {
     instancesBuffer,
     instances: instancesBuffer.as("mutable"),
+  }
+}
+
+function createInstanceData() {
+  const side = Math.random() > 0.5 ? 1 : -1
+  return {
+    pos: vec2f(
+      randomOnZero(0.2) + 0.6 * side, //
+      randomOnZero(0.15),
+    ),
+    vel: vec2f(
+      0, //
+      randomRange(0.006, 0.01) * side,
+    ),
   }
 }
 
@@ -170,18 +202,30 @@ export function setupParticles(root: TgpuRoot) {
     .createPipeline()
     .with(instanceLayout, instancesBuffer)
 
-  return (ctx: GPUCanvasContext, mouse: v2f, forceScale: number) => {
-    uniformsBuffer.write({ mouse, forceScale })
+  function resetParticles() {
+    instancesBuffer.write(Array.from({ length: N }).map(createInstanceData))
+  }
+  resetParticles()
 
-    movePipeline.dispatchWorkgroups(NX, NY)
+  return {
+    resetParticles,
+    renderParticles: (
+      ctx: GPUCanvasContext,
+      mouse: v2f,
+      forceScale: number,
+    ) => {
+      uniformsBuffer.write({ mouse, forceScale })
 
-    renderPipeline
-      .withColorAttachment({
-        view: ctx.getCurrentTexture().createView(),
-        loadOp: "load",
-        storeOp: "store",
-      })
-      .draw(6, N)
+      movePipeline.dispatchWorkgroups(NX, NY)
+
+      renderPipeline
+        .withColorAttachment({
+          view: ctx.getCurrentTexture().createView(),
+          loadOp: "load",
+          storeOp: "store",
+        })
+        .draw(6, N)
+    },
   }
 }
 
