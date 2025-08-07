@@ -49,7 +49,7 @@ const vertShader = tgpu["~unstable"].vertexFn({
 })(({ idx, pos, vel }) => {
   let localPos = quadVert(idx).mul(SIZE)
   localPos.x *= 1 + length(vel) * 800
-  localPos.y *= 1 + length(vel) * -0
+  localPos.y *= 1 + length(vel) * -50
 
   const heading = atan2(vel.y, vel.x)
   localPos = rotateVec2(localPos, heading)
@@ -133,8 +133,8 @@ const bounce = tgpu.fn(
   const b = vel.y < 0 && pos.y < -1
 
   const newVel = vec2f(
-    select(vel.x, -vel.x * 0.9, r || l),
-    select(vel.y, -vel.y * 0.9, t || b),
+    select(vel.x, -vel.x * 0.7, r || l),
+    select(vel.y, -vel.y * 0.7, t || b),
   )
 
   const newPos = pos
