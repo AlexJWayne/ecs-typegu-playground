@@ -83,7 +83,7 @@ function createMoveShader({
   uniforms: TgpuBufferMutable<typeof Uniforms>
   instances: TgpuBufferMutable<WgslArray<typeof Instance>>
 }) {
-  const moveShader = tgpu["~unstable"].computeFn({
+  return tgpu["~unstable"].computeFn({
     in: {
       gid: builtin.globalInvocationId,
       numWorkgroups: builtin.numWorkgroups,
@@ -116,11 +116,6 @@ function createMoveShader({
     instances.$[idx].pos = pos
     instances.$[idx].vel = vel
   })
-  console.log(
-    "move shader compiled to:\n\n",
-    tgpu.resolve({ externals: { moveShader } }),
-  )
-  return moveShader
 }
 
 const bounce = tgpu.fn(

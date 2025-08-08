@@ -1,17 +1,18 @@
 import tgpu from "typegpu"
 import { setupParticles } from "./particles"
 import { vec2f, type v2f } from "typegpu/data"
+import { setupMasses } from "./mass"
+import { addComponent, addEntity, createWorld, query, type World } from "bitecs"
+import { add } from "typegpu/std"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.getElementById("canvas") as HTMLCanvasElement
 export const root = await tgpu.init()
 export const canvasSize = 1000
 
-export let ctx: GPUCanvasContext
-
-export let mouse = vec2f()
-export let forceScale = 1
-export let mouseDown = false
+let ctx: GPUCanvasContext
+let mouseDown = false
+let world: World
 
 export function setupCanvas(): void {
   canvas.width = canvasSize
@@ -38,23 +39,47 @@ export function setupCanvas(): void {
   })
 }
 
-function setMousePosition(event: MouseEvent): void {
+function setMousePosition(event?: MouseEvent): void {
+  const masses = query(world, [Mass, Position])
+  const mass = masses[0]
+  if (!mass) return
+
   const rect = canvas.getBoundingClientRect()
-  mouse.x = ((event.clientX - rect.left) / canvasSize) * 2 - 1
-  mouse.y = -(((event.clientY - rect.top) / canvasSize) * 2 - 1)
+  if (event) {
+    Position[mass].x = ((event.clientX - rect.left) / canvasSize) * 2 - 1
+    Position[mass].y = -(((event.clientY - rect.top) / canvasSize) * 2 - 1)
+  } else {
+    Position[mass].x = 0
+    Position[mass].y = 0
+  }
 }
+
+const Position = [] as v2f[]
+const Mass = [] as number[]
 
 function main() {
   setupCanvas()
   const { renderParticles, resetParticles } = setupParticles(root)
+  const { renderMasses } = setupMasses(root)
+
+  world = createWorld()
+  const mass = addEntity(world)
+
+  addComponent(world, mass, Position)
+  Position[mass] = vec2f()
+
+  addComponent(world, mass, Mass)
+  Mass[mass] = 1
 
   document.getElementById("reset")!.onclick = () => {
-    mouse = vec2f()
+    setMousePosition()
     resetParticles()
   }
 
   function render() {
-    renderParticles(ctx, mouse, forceScale)
+    const mass = query(world, [Mass, Position])[0]
+    renderParticles(ctx, Position[mass], Mass[mass])
+    renderMasses(ctx, Position[mass], Mass[mass])
     requestAnimationFrame(render)
   }
   render()
