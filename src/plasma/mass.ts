@@ -5,26 +5,26 @@ import {
   f32,
   struct,
   vec2f,
-  vec3f,
   vec4f,
   type v2f,
 } from "typegpu/data"
 import { quadVert } from "./shader-lib"
-import { clamp, length, pow } from "typegpu/std"
-import { step } from "../jelleyfish-rockets/canvas-gl"
+import { clamp, length } from "typegpu/std"
+import { addComponents, addEntity, query, type World } from "bitecs"
+import { Mass, Position } from "./components"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 
-const N = 16
+export const massesCount = 32
 
-const Instance = struct({
+export const MassInstance = struct({
   pos: vec2f,
   mass: f32,
 })
 const Uniforms = struct({})
 
-const instanceLayout = tgpu.vertexLayout(
-  (n: number) => arrayOf(Instance, n),
+export const massesInstanceLayout = tgpu.vertexLayout(
+  (n: number) => arrayOf(MassInstance, n),
   "instance",
 )
 
@@ -65,8 +65,8 @@ const fragShader = tgpu["~unstable"].fragmentFn({
 function createInstances(root: TgpuRoot) {
   return root
     .createBuffer(
-      arrayOf(Instance, N), //
-      Array.from({ length: N }).map(Instance),
+      arrayOf(MassInstance, massesCount), //
+      Array.from({ length: massesCount }).map(MassInstance),
     )
     .$usage("vertex", "storage")
 }
@@ -80,7 +80,7 @@ export function setupMasses(root: TgpuRoot) {
   const uniformsBuffer = createUniforms(root)
 
   const renderPipeline = root["~unstable"]
-    .withVertex(vertShader, instanceLayout.attrib)
+    .withVertex(vertShader, massesInstanceLayout.attrib)
     .withFragment(fragShader, {
       format: presentationFormat,
       blend: {
@@ -89,19 +89,23 @@ export function setupMasses(root: TgpuRoot) {
       },
     })
     .createPipeline()
-    .with(instanceLayout, instancesBuffer)
+    .with(massesInstanceLayout, instancesBuffer)
 
   return {
-    renderMasses: (ctx: GPUCanvasContext, mouse: v2f, mass: number) => {
-      instancesBuffer.writePartial([
-        {
-          idx: 0,
-          value: {
-            pos: mouse,
-            mass,
+    massesBuffer: instancesBuffer,
+    renderMasses: (ctx: GPUCanvasContext, world: World) => {
+      const masses = query(world, [Mass, Position])
+      for (const [idx, eid] of masses.entries()) {
+        instancesBuffer.writePartial([
+          {
+            idx,
+            value: {
+              pos: Position[eid],
+              mass: Mass[eid],
+            },
           },
-        },
-      ])
+        ])
+      }
 
       renderPipeline
         .withColorAttachment({
@@ -109,7 +113,15 @@ export function setupMasses(root: TgpuRoot) {
           loadOp: "load",
           storeOp: "store",
         })
-        .draw(6, N)
+        .draw(6, massesCount)
     },
   }
+}
+
+export function addMass(world: World, pos: v2f, mass: number = 1) {
+  const eid = addEntity(world)
+  addComponents(world, eid, [Position, Mass])
+  Position[eid] = pos
+  Mass[eid] = mass
+  return eid
 }

@@ -1,4 +1,11 @@
-import tgpu, { type TgpuBufferMutable, type TgpuRoot } from "typegpu"
+import tgpu, {
+  type StorageFlag,
+  type TgpuBuffer,
+  type TgpuBufferMutable,
+  type TgpuBufferReadonly,
+  type TgpuRoot,
+  type VertexFlag,
+} from "typegpu"
 import {
   arrayOf,
   builtin,
@@ -12,24 +19,23 @@ import {
 import { quadVert } from "./shader-lib"
 import { atan2, clamp, cos, length, max, pow, select, sin } from "typegpu/std"
 import { randomRange } from "../jelleyfish-rockets/math"
+import type { World } from "bitecs"
+import { massesCount, massesInstanceLayout, MassInstance } from "./mass"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 
 const NX = 65535
-const NY = 8
+const NY = 4
 const N = NX * NY
 console.log(N.toLocaleString(), "particles")
 
-const SIZE = 0.006
+const SIZE = 0.008
 
 const Instance = struct({
   pos: vec2f,
   vel: vec2f,
 })
-const Uniforms = struct({
-  mouse: vec2f,
-  forceScale: f32,
-})
+const Uniforms = struct({})
 
 const instanceLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(Instance, n),
@@ -67,7 +73,6 @@ const fragShader = tgpu["~unstable"].fragmentFn({
   out: vec4f,
 })(({ uv }) => {
   let a = clamp(1 - length(uv), 0, 1)
-  // a = 1
   return vec4f(
     pow(a, 4), //
     pow(a, 8),
@@ -77,11 +82,11 @@ const fragShader = tgpu["~unstable"].fragmentFn({
 })
 
 function createMoveShader({
-  uniforms,
   instances,
+  masses,
 }: {
-  uniforms: TgpuBufferMutable<typeof Uniforms>
   instances: TgpuBufferMutable<WgslArray<typeof Instance>>
+  masses: TgpuBufferReadonly<WgslArray<typeof MassInstance>>
 }) {
   return tgpu["~unstable"].computeFn({
     in: {
@@ -94,19 +99,25 @@ function createMoveShader({
 
     const width = 16 * numWorkgroups.x
     const idx = gid.y * width + gid.x
-    const item = instances.$[idx]
-    let pos = item.pos
+    let pos = instances.$[idx].pos
+    let vel = instances.$[idx].vel
 
-    const mouseDiff = uniforms.$.mouse.sub(pos)
-    let force = select(
-      g / pow(length(mouseDiff), 1.3),
-      0,
-      length(mouseDiff) === 0,
-    )
-    force *= uniforms.$.forceScale
+    for (let i = 0; i < massesCount; i++) {
+      const massValue = masses.$[i].mass
+      if (massValue === 0) break
 
-    let vel = item.vel
-    vel = vel.add(mouseDiff.mul(force))
+      const massPos = masses.$[i].pos
+      const mouseDiff = massPos.sub(pos)
+
+      let force = select(
+        g / pow(length(mouseDiff), 1.3),
+        0,
+        length(mouseDiff) === 0,
+      )
+      force *= massValue
+
+      vel = vel.add(mouseDiff.mul(force))
+    }
 
     const bounced = bounce(pos, vel)
     vel = bounced.vel
@@ -176,11 +187,19 @@ function createUniforms(root: TgpuRoot) {
   }
 }
 
-export function setupParticles(root: TgpuRoot) {
+export function setupParticles(
+  root: TgpuRoot,
+  massesBuffer: TgpuBuffer<WgslArray<typeof MassInstance>> &
+    VertexFlag &
+    StorageFlag,
+) {
   const { instancesBuffer, instances } = createInstances(root)
   const { uniformsBuffer, uniforms } = createUniforms(root)
 
-  const moveShader = createMoveShader({ uniforms, instances })
+  const moveShader = createMoveShader({
+    instances,
+    masses: massesBuffer.as("readonly"),
+  })
   const movePipeline = root["~unstable"]
     .withCompute(moveShader)
     .createPipeline()
@@ -196,31 +215,28 @@ export function setupParticles(root: TgpuRoot) {
     })
     .createPipeline()
     .with(instanceLayout, instancesBuffer)
+    .with(massesInstanceLayout, massesBuffer)
 
   function resetParticles() {
     instancesBuffer.write(Array.from({ length: N }).map(createInstanceData))
   }
   resetParticles()
 
+  function renderParticles(ctx: GPUCanvasContext) {
+    movePipeline.dispatchWorkgroups(NX, NY)
+
+    renderPipeline
+      .withColorAttachment({
+        view: ctx.getCurrentTexture().createView(),
+        loadOp: "load",
+        storeOp: "store",
+      })
+      .draw(6, N)
+  }
+
   return {
     resetParticles,
-    renderParticles: (
-      ctx: GPUCanvasContext,
-      mouse: v2f,
-      forceScale: number,
-    ) => {
-      uniformsBuffer.write({ mouse, forceScale })
-
-      movePipeline.dispatchWorkgroups(NX, NY)
-
-      renderPipeline
-        .withColorAttachment({
-          view: ctx.getCurrentTexture().createView(),
-          loadOp: "load",
-          storeOp: "store",
-        })
-        .draw(6, N)
-    },
+    renderParticles,
   }
 }
 

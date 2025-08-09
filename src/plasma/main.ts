@@ -1,9 +1,10 @@
 import tgpu from "typegpu"
 import { setupParticles } from "./particles"
 import { vec2f, type v2f } from "typegpu/data"
-import { setupMasses } from "./mass"
+import { addMass, setupMasses } from "./mass"
 import { addComponent, addEntity, createWorld, query, type World } from "bitecs"
 import { add } from "typegpu/std"
+import { Mass, Position } from "./components"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -54,22 +55,18 @@ function setMousePosition(event?: MouseEvent): void {
   }
 }
 
-const Position = [] as v2f[]
-const Mass = [] as number[]
-
 function main() {
   setupCanvas()
-  const { renderParticles, resetParticles } = setupParticles(root)
-  const { renderMasses } = setupMasses(root)
+  const { renderMasses, massesBuffer } = setupMasses(root)
+  const { renderParticles, resetParticles } = setupParticles(root, massesBuffer)
 
   world = createWorld()
-  const mass = addEntity(world)
-
-  addComponent(world, mass, Position)
-  Position[mass] = vec2f()
-
-  addComponent(world, mass, Mass)
-  Mass[mass] = 1
+  addMass(world, vec2f(0, 0), 0.5)
+  addMass(world, vec2f(-0.5, -0.5), 0.25)
+  addMass(world, vec2f(0.5, -0.5), 0.25)
+  addMass(world, vec2f(-0.5, 0.5), 0.25)
+  addMass(world, vec2f(0.5, 0.5), 0.25)
+  console.log(Position)
 
   document.getElementById("reset")!.onclick = () => {
     setMousePosition()
@@ -78,8 +75,8 @@ function main() {
 
   function render() {
     const mass = query(world, [Mass, Position])[0]
-    renderParticles(ctx, Position[mass], Mass[mass])
-    renderMasses(ctx, Position[mass], Mass[mass])
+    renderParticles(ctx)
+    renderMasses(ctx, world)
     requestAnimationFrame(render)
   }
   render()
