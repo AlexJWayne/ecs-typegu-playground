@@ -1,10 +1,10 @@
 import tgpu from "typegpu"
 import { setupParticles } from "./particles"
-import { vec2f, type v2f } from "typegpu/data"
+import { vec2f } from "typegpu/data"
 import { addMass, setupMasses } from "./mass"
-import { addComponent, addEntity, createWorld, query, type World } from "bitecs"
-import { add } from "typegpu/std"
+import { createWorld, query, type World } from "bitecs"
 import { Mass, Position } from "./components"
+import { Timing } from "./timing"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -73,8 +73,9 @@ function main() {
     resetParticles()
   }
 
+  Timing.update()
   function render() {
-    const mass = query(world, [Mass, Position])[0]
+    Timing.update()
     renderParticles(ctx)
     renderMasses(ctx, world)
     requestAnimationFrame(render)

@@ -13,14 +13,13 @@ import {
   struct,
   vec2f,
   vec4f,
-  type v2f,
   type WgslArray,
 } from "typegpu/data"
 import { quadVert } from "./shader-lib"
-import { atan2, clamp, cos, length, max, pow, select, sin } from "typegpu/std"
+import { atan2, clamp, cos, length, pow, select, sin } from "typegpu/std"
 import { randomRange } from "../jelleyfish-rockets/math"
-import type { World } from "bitecs"
 import { massesCount, massesInstanceLayout, MassInstance } from "./mass"
+import { Timing } from "./timing"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 
@@ -35,7 +34,9 @@ const Instance = struct({
   pos: vec2f,
   vel: vec2f,
 })
-const Uniforms = struct({})
+const Uniforms = struct({
+  deltaTime: f32,
+})
 
 const instanceLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(Instance, n),
@@ -54,8 +55,8 @@ const vertShader = tgpu["~unstable"].vertexFn({
   },
 })(({ idx, pos, vel }) => {
   let localPos = quadVert(idx).mul(SIZE)
-  localPos.x *= 1 + length(vel) * 800
-  localPos.y *= 1 + length(vel) * -50
+  localPos.x *= 1 + length(vel) * 6
+  localPos.y *= 1 + length(vel) * -0.4
 
   const heading = atan2(vel.y, vel.x)
   localPos = rotateVec2(localPos, heading)
@@ -84,9 +85,11 @@ const fragShader = tgpu["~unstable"].fragmentFn({
 function createMoveShader({
   instances,
   masses,
+  uniforms,
 }: {
   instances: TgpuBufferMutable<WgslArray<typeof Instance>>
   masses: TgpuBufferReadonly<WgslArray<typeof MassInstance>>
+  uniforms: TgpuBufferReadonly<typeof Uniforms>
 }) {
   return tgpu["~unstable"].computeFn({
     in: {
@@ -95,7 +98,7 @@ function createMoveShader({
     },
     workgroupSize: [16, 16],
   })(({ gid, numWorkgroups }) => {
-    const g = 0.0001
+    const g = 1
 
     const width = 16 * numWorkgroups.x
     const idx = gid.y * width + gid.x
@@ -114,7 +117,7 @@ function createMoveShader({
         0,
         length(mouseDiff) === 0,
       )
-      force *= massValue
+      force *= massValue * uniforms.$.deltaTime
 
       vel = vel.add(mouseDiff.mul(force))
     }
@@ -122,7 +125,7 @@ function createMoveShader({
     const bounced = bounce(pos, vel)
     vel = bounced.vel
     pos = bounced.pos
-    pos = pos.add(vel)
+    pos = pos.add(vel.mul(uniforms.$.deltaTime))
 
     instances.$[idx].pos = pos
     instances.$[idx].vel = vel
@@ -174,7 +177,7 @@ function createInstanceData() {
     ),
     vel: vec2f(
       0, //
-      randomRange(0.006, 0.01) * side,
+      randomRange(0.6, 1) * side,
     ),
   }
 }
@@ -199,6 +202,7 @@ export function setupParticles(
   const moveShader = createMoveShader({
     instances,
     masses: massesBuffer.as("readonly"),
+    uniforms: uniformsBuffer.as("readonly"),
   })
   const movePipeline = root["~unstable"]
     .withCompute(moveShader)
@@ -224,6 +228,7 @@ export function setupParticles(
 
   function renderParticles(ctx: GPUCanvasContext) {
     movePipeline.dispatchWorkgroups(NX, NY)
+    uniformsBuffer.write({ deltaTime: Timing.deltaTime })
 
     renderPipeline
       .withColorAttachment({
