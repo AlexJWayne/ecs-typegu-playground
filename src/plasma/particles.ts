@@ -158,16 +158,6 @@ const bounce = tgpu.fn(
   }
 })
 
-function createInstances(root: TgpuRoot) {
-  const instancesBuffer = root
-    .createBuffer(arrayOf(Instance, N))
-    .$usage("vertex", "storage")
-  return {
-    instancesBuffer,
-    instances: instancesBuffer.as("mutable"),
-  }
-}
-
 function createInstanceData() {
   const side = Math.random() > 0.5 ? 1 : -1
   return {
@@ -182,25 +172,19 @@ function createInstanceData() {
   }
 }
 
-function createUniforms(root: TgpuRoot) {
-  const uniformsBuffer = root.createBuffer(Uniforms).$usage("storage")
-  return {
-    uniformsBuffer,
-    uniforms: uniformsBuffer.as("mutable"),
-  }
-}
-
 export function setupParticles(
   root: TgpuRoot,
   massesBuffer: TgpuBuffer<WgslArray<typeof MassInstance>> &
     VertexFlag &
     StorageFlag,
 ) {
-  const { instancesBuffer, instances } = createInstances(root)
-  const { uniformsBuffer, uniforms } = createUniforms(root)
+  const uniformsBuffer = root.createBuffer(Uniforms).$usage("storage")
+  const instancesBuffer = root
+    .createBuffer(arrayOf(Instance, N))
+    .$usage("vertex", "storage")
 
   const moveShader = createMoveShader({
-    instances,
+    instances: instancesBuffer.as("mutable"),
     masses: massesBuffer.as("readonly"),
     uniforms: uniformsBuffer.as("readonly"),
   })

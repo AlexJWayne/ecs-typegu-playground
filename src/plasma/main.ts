@@ -1,9 +1,9 @@
 import tgpu from "typegpu"
 import { setupParticles } from "./particles"
 import { vec2f } from "typegpu/data"
-import { addMass, setupMasses } from "./mass"
+import { addMass, Mass, setupMasses } from "./mass"
 import { createWorld, query, type World } from "bitecs"
-import { Mass, Position } from "./components"
+import { Position } from "./components"
 import { Timing } from "./timing"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()

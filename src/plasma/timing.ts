@@ -9,8 +9,8 @@ export const Timing = {
   timeScale: 1.0,
 
   update() {
-    const now = performance.now()
-    const unscaledDeltaTime = (now - Timing.elapsed) / 1000
+    const now = performance.now() / 1000
+    const unscaledDeltaTime = now - Timing.elapsed
     Timing.deltaTime = unscaledDeltaTime * Timing.timeScale
     Timing.elapsed = now
   },

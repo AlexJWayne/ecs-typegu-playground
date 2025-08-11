@@ -1,4 +1,4 @@
-import tgpu, { type TgpuRoot } from "typegpu"
+import tgpu, { type TgpuBufferReadonly, type TgpuRoot } from "typegpu"
 import {
   arrayOf,
   builtin,
@@ -9,11 +9,14 @@ import {
   type v2f,
 } from "typegpu/data"
 import { quadVert } from "./shader-lib"
-import { clamp, length } from "typegpu/std"
+import { atan2, clamp, length, sin } from "typegpu/std"
 import { addComponents, addEntity, query, type World } from "bitecs"
-import { Mass, Position } from "./components"
+import { Position } from "./components"
+import { Timing } from "./timing"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
+
+export const Mass = [] as number[]
 
 export const massesCount = 32
 
@@ -21,12 +24,14 @@ export const MassInstance = struct({
   pos: vec2f,
   mass: f32,
 })
-const Uniforms = struct({})
-
 export const massesInstanceLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(MassInstance, n),
   "instance",
 )
+
+const Uniforms = struct({
+  elapsed: f32,
+})
 
 const vertShader = tgpu["~unstable"].vertexFn({
   in: {
@@ -35,32 +40,41 @@ const vertShader = tgpu["~unstable"].vertexFn({
     mass: f32,
   },
   out: {
-    pos: builtin.position,
+    vert: builtin.position,
     uv: vec2f,
+    pos: vec2f,
   },
 })(({ idx, pos, mass }) => {
   let localPos = quadVert(idx).mul(mass * 0.1)
   const worldPos = pos.add(localPos)
 
   return {
-    pos: vec4f(worldPos, 0, 1),
+    vert: vec4f(worldPos, 0, 1),
     uv: quadVert(idx),
+    pos,
   }
 })
 
-const fragShader = tgpu["~unstable"].fragmentFn({
-  in: { uv: vec2f },
-  out: vec4f,
-})(({ uv }) => {
-  const a = clamp(1 - length(uv), 0, 1)
-  const l = 1 - a
-  return vec4f(
-    l * 0.3, //
-    l * 0.2,
-    l,
-    a,
-  )
-})
+function createFragShader(uniforms: TgpuBufferReadonly<typeof Uniforms>) {
+  return tgpu["~unstable"].fragmentFn({
+    in: { pos: vec2f, uv: vec2f },
+    out: vec4f,
+  })(({ pos, uv }) => {
+    const a = clamp(1 - length(uv), 0, 1)
+    const l = 1 - a
+
+    const theta = atan2(uv.y, uv.x)
+    const offset = pos.x * 31 + pos.y * 73
+    let white = (sin(theta * 2 + offset + uniforms.$.elapsed) + 1) * 0.5 * l * a
+
+    return vec4f(
+      l * 0.3, //
+      l * 0.2,
+      l,
+      a,
+    ).add(white)
+  })
+}
 
 function createInstances(root: TgpuRoot) {
   return root
@@ -80,8 +94,11 @@ export function setupMasses(root: TgpuRoot) {
   const uniformsBuffer = createUniforms(root)
 
   const renderPipeline = root["~unstable"]
-    .withVertex(vertShader, massesInstanceLayout.attrib)
-    .withFragment(fragShader, {
+    .withVertex(vertShader, {
+      pos: massesInstanceLayout.attrib.pos,
+      mass: massesInstanceLayout.attrib.mass,
+    })
+    .withFragment(createFragShader(uniformsBuffer.as("readonly")), {
       format: presentationFormat,
       blend: {
         color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
@@ -94,6 +111,9 @@ export function setupMasses(root: TgpuRoot) {
   return {
     massesBuffer: instancesBuffer,
     renderMasses: (ctx: GPUCanvasContext, world: World) => {
+      uniformsBuffer.write({
+        elapsed: Timing.elapsed,
+      })
       const masses = query(world, [Mass, Position])
       for (const [idx, eid] of masses.entries()) {
         instancesBuffer.writePartial([
