@@ -17,6 +17,7 @@
     "typegpu": "^0.7.0"
   },
   "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@webgpu/types": "^0.1.64",
     "prettier": "^3.6.2",
     "typescript": "^5.9.0",
