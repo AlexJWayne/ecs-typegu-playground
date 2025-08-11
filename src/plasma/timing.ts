@@ -10,7 +10,7 @@ export const Timing = {
 
   update() {
     const now = performance.now() / 1000
-    const unscaledDeltaTime = now - Timing.elapsed
+    const unscaledDeltaTime = Math.min(now - Timing.elapsed, 1 / 30)
     Timing.deltaTime = unscaledDeltaTime * Timing.timeScale
     Timing.elapsed = now
   },

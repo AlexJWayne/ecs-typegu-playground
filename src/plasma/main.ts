@@ -1,10 +1,11 @@
 import tgpu from "typegpu"
 import { setupParticles } from "./particles"
 import { vec2f } from "typegpu/data"
-import { addMass, Mass, setupMasses } from "./mass"
 import { createWorld, query, type World } from "bitecs"
 import { Position } from "./components"
 import { Timing } from "./timing"
+import { addMass, Mass } from "./mass/components"
+import { setupMasses } from "./mass/render"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -66,7 +67,6 @@ function main() {
   addMass(world, vec2f(0.5, -0.5), 0.25)
   addMass(world, vec2f(-0.5, 0.5), 0.25)
   addMass(world, vec2f(0.5, 0.5), 0.25)
-  console.log(Position)
 
   document.getElementById("reset")!.onclick = () => {
     setMousePosition()

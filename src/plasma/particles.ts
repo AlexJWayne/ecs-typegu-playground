@@ -18,7 +18,7 @@ import {
 import { quadVert } from "./shader-lib"
 import { atan2, clamp, cos, length, pow, select, sin } from "typegpu/std"
 import { randomRange } from "../jelleyfish-rockets/math"
-import { massesCount, massesInstanceLayout, MassInstance } from "./mass"
+import { massesCount, massesInstanceLayout, MassInstance } from "./mass/render"
 import { Timing } from "./timing"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
