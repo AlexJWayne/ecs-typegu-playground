@@ -7,18 +7,20 @@ import tgpu, {
   type VertexFlag,
 } from "typegpu"
 import {
+  type WgslArray,
   arrayOf,
   builtin,
   f32,
   struct,
   vec2f,
   vec4f,
-  type WgslArray,
 } from "typegpu/data"
-import { quadVert } from "./shader-lib"
 import { atan2, clamp, cos, length, pow, select, sin } from "typegpu/std"
+
 import { randomRange } from "../jelleyfish-rockets/math"
-import { massesCount, massesInstanceLayout, MassInstance } from "./mass/render"
+
+import { MassInstance, massesCount, massesInstanceLayout } from "./mass/render"
+import { quadVert } from "./shader-lib"
 import { Timing } from "./timing"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()

@@ -1,5 +1,8 @@
-import { createWorld, type World } from "bitecs"
+import { type World, createWorld } from "bitecs"
+
 import * as canvasGl from "./canvas-gl"
+import { renderCells } from "./cell.render"
+import { renderTrailParticles } from "./trail-particle.render"
 import {
   applyDrag,
   birthCells,
@@ -10,8 +13,6 @@ import {
   updateLifetimes,
   updatePositions,
 } from "./world"
-import { renderCells } from "./cell.render"
-import { renderTrailParticles } from "./trail-particle.render"
 
 let world: World
 

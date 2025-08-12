@@ -1,11 +1,12 @@
 import {
+  type World,
   addComponent,
   addEntity,
-  query,
-  type World,
-  removeEntity,
   hasComponent,
+  query,
+  removeEntity,
 } from "bitecs"
+
 import {
   Cell,
   CellState,

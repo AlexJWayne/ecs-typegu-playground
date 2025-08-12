@@ -1,5 +1,5 @@
-import type { UserConfig } from "vite"
 import typegpuPlugin from "unplugin-typegpu/vite"
+import type { UserConfig } from "vite"
 
 export default {
   plugins: [typegpuPlugin({})],

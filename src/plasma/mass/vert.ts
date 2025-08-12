@@ -1,5 +1,6 @@
 import tgpu from "typegpu"
-import { builtin, vec2f, f32, vec4f } from "typegpu/data"
+import { builtin, f32, vec2f, vec4f } from "typegpu/data"
+
 import { quadVert } from "../shader-lib"
 
 export const vertShader = tgpu["~unstable"].vertexFn({

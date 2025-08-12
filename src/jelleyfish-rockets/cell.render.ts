@@ -1,25 +1,26 @@
-import { query, type World } from "bitecs"
-import { Cell, Position, Radius } from "./components"
+import { type World, query } from "bitecs"
 import tgpu from "typegpu"
 import {
+  type Infer,
+  arrayOf,
+  builtin,
+  f32,
   struct,
   vec2f,
-  f32,
-  builtin,
-  vec4f,
   vec3f,
-  arrayOf,
-  type Infer,
+  vec4f,
 } from "typegpu/data"
-import { sub, atan2, sin, length, mul, add } from "typegpu/std"
+import { add, atan2, length, mul, sin, sub } from "typegpu/std"
+
 import {
-  root,
-  presentationFormat,
   ctx,
-  step,
+  presentationFormat,
   quadVert,
+  root,
+  step,
   worldToClipSpace,
 } from "./canvas-gl"
+import { Cell, Position, Radius } from "./components"
 
 export function renderCells(world: World) {
   const cells = query(world, [Cell, Position])

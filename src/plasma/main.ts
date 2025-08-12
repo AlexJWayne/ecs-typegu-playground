@@ -1,11 +1,12 @@
+import { type World, createWorld, query } from "bitecs"
 import tgpu from "typegpu"
-import { setupParticles } from "./particles"
 import { vec2f } from "typegpu/data"
-import { createWorld, query, type World } from "bitecs"
+
 import { Position } from "./components"
-import { Timing } from "./timing"
-import { addMass, Mass } from "./mass/components"
+import { Mass, addMass } from "./mass/components"
 import { setupMasses } from "./mass/render"
+import { setupParticles } from "./particles"
+import { Timing } from "./timing"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 export const canvas = document.getElementById("canvas") as HTMLCanvasElement

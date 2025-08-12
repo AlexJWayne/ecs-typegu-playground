@@ -1,6 +1,7 @@
-import { type World, addEntity, addComponents } from "bitecs"
-import { Position } from "../components"
+import { type World, addComponents, addEntity } from "bitecs"
 import type { v2f } from "typegpu/data"
+
+import { Position } from "../components"
 
 export const Mass = [] as number[]
 

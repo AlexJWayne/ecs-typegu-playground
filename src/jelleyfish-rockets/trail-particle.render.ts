@@ -1,4 +1,34 @@
-import { query, type World } from "bitecs"
+import { type World, query } from "bitecs"
+import tgpu, {
+  type TgpuBuffer,
+  type TgpuRenderPipeline,
+  type VertexFlag,
+} from "typegpu"
+import {
+  type AnyWgslStruct,
+  type BaseData,
+  type Infer,
+  type Vec4f,
+  type WgslArray,
+  type WgslStruct,
+  arrayOf,
+  builtin,
+  f32,
+  struct,
+  vec2f,
+  vec4f,
+} from "typegpu/data"
+import { add, atan2, length, min, mul, sub } from "typegpu/std"
+
+import {
+  ctx,
+  presentationFormat,
+  quadVert,
+  root,
+  rotateVec2,
+  step,
+  worldToClipSpace,
+} from "./canvas-gl"
 import {
   Lifetime,
   Position,
@@ -6,35 +36,6 @@ import {
   TrailParticle,
   Velocity,
 } from "./components"
-import tgpu, {
-  type TgpuBuffer,
-  type TgpuRenderPipeline,
-  type VertexFlag,
-} from "typegpu"
-import {
-  struct,
-  vec2f,
-  f32,
-  builtin,
-  vec4f,
-  arrayOf,
-  type Infer,
-  type Vec4f,
-  type WgslArray,
-  type AnyWgslStruct,
-  type WgslStruct,
-  type BaseData,
-} from "typegpu/data"
-import { sub, length, min, add, mul, atan2 } from "typegpu/std"
-import {
-  root,
-  presentationFormat,
-  ctx,
-  step,
-  rotateVec2,
-  worldToClipSpace,
-  quadVert,
-} from "./canvas-gl"
 
 export function renderTrailParticles(world: World) {
   const particles = query(world, [TrailParticle, Position, Velocity, Lifetime])

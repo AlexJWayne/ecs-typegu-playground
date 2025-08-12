@@ -1,6 +1,6 @@
 import tgpu, { type TgpuBufferReadonly } from "typegpu"
-import { vec2f, f32, vec4f } from "typegpu/data"
-import { clamp, atan2, sin, length } from "typegpu/std"
+import { f32, vec2f, vec4f } from "typegpu/data"
+import { atan2, clamp, length, sin } from "typegpu/std"
 
 import { type Uniforms } from "./render"
 

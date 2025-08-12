@@ -1,11 +1,13 @@
+import { type World, query } from "bitecs"
 import tgpu, { type TgpuRoot } from "typegpu"
 import { arrayOf, f32, struct, vec2f } from "typegpu/data"
-import { query, type World } from "bitecs"
+
 import { Position } from "../components"
 import { Timing } from "../timing"
+
+import { Mass } from "./components"
 import { createFragShader } from "./frag"
 import { vertShader } from "./vert"
-import { Mass } from "./components"
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 

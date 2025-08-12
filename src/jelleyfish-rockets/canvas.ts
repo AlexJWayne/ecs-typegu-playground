@@ -1,4 +1,5 @@
-import { query, type World } from "bitecs"
+import { type World, query } from "bitecs"
+
 import { Cell, Lifetime, Position, Radius, TrailParticle } from "./components"
 
 let canvas = document.createElement("canvas")
