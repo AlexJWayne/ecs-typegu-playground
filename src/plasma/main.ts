@@ -6,6 +6,8 @@ import { Position } from "./components"
 import { Mass, addMass } from "./mass/component"
 import { setupMasses } from "./mass/render"
 import { setupParticles } from "./particles/render"
+import { addSpawner } from "./spawners/component"
+import { setupSpawners } from "./spawners/render"
 import { Timing } from "./timing"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
@@ -61,6 +63,7 @@ function main() {
   setupCanvas()
   const { renderMasses, massesBuffer } = setupMasses(root)
   const { renderParticles, resetParticles } = setupParticles(root, massesBuffer)
+  const { renderSpawners } = setupSpawners(root)
 
   world = createWorld()
   addMass(world, vec2f(0, 0), 0.5)
@@ -68,6 +71,13 @@ function main() {
   addMass(world, vec2f(0.5, -0.5), 0.25)
   addMass(world, vec2f(-0.5, 0.5), 0.25)
   addMass(world, vec2f(0.5, 0.5), 0.25)
+
+  addSpawner(world, {
+    pos: vec2f(0.5, 0),
+    initialVel: vec2f(0, 0.8),
+    radius: 0.1,
+    lifetime: 10,
+  })
 
   document.getElementById("reset")!.onclick = () => {
     setMousePosition()
@@ -79,6 +89,8 @@ function main() {
     Timing.update()
     renderParticles(ctx)
     renderMasses(ctx, world)
+    renderSpawners(ctx)
+
     requestAnimationFrame(render)
   }
   render()
