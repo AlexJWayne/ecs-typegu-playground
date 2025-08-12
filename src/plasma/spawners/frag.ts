@@ -1,6 +1,6 @@
 import tgpu from "typegpu"
-import { vec2f, vec3f, vec4f } from "typegpu/data"
-import { clamp, length, pow } from "typegpu/std"
+import { vec2f, vec4f } from "typegpu/data"
+import { clamp, length } from "typegpu/std"
 
 export const fragShader = tgpu["~unstable"].fragmentFn({
   in: { uv: vec2f },
