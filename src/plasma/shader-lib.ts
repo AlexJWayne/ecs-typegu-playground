@@ -1,5 +1,6 @@
 import tgpu from "typegpu"
-import { builtin, vec2f } from "typegpu/data"
+import { builtin, f32, vec2f } from "typegpu/data"
+import { cos, sin } from "typegpu/std"
 
 export const quadVert = tgpu.fn(
   [builtin.vertexIndex],
@@ -14,4 +15,16 @@ export const quadVert = tgpu.fn(
     vec2f(-1, -1),
   ]
   return quadVertices[idx]
+})
+
+export const rotateVec2 = tgpu.fn(
+  [vec2f, f32],
+  vec2f,
+)((vec, angle) => {
+  const cosAngle = cos(angle)
+  const sinAngle = sin(angle)
+  return vec2f(
+    vec.x * cosAngle - vec.y * sinAngle,
+    vec.x * sinAngle + vec.y * cosAngle,
+  )
 })

@@ -5,7 +5,7 @@ import { arrayOf, f32, struct, vec2f } from "typegpu/data"
 import { Position } from "../components"
 import { Timing } from "../timing"
 
-import { Mass } from "./components"
+import { Mass } from "./component"
 import { createFragShader } from "./frag"
 import { vertShader } from "./vert"
 
@@ -13,10 +13,12 @@ const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 
 export const massesCount = 32
 
-export const MassInstance = struct({
+const MassInstance = struct({
   pos: vec2f,
   mass: f32,
 })
+export type MassInstance = typeof MassInstance
+
 export const massesInstanceLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(MassInstance, n),
   "instance",

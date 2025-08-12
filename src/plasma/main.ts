@@ -3,9 +3,9 @@ import tgpu from "typegpu"
 import { vec2f } from "typegpu/data"
 
 import { Position } from "./components"
-import { Mass, addMass } from "./mass/components"
+import { Mass, addMass } from "./mass/component"
 import { setupMasses } from "./mass/render"
-import { setupParticles } from "./particles"
+import { setupParticles } from "./particles/render"
 import { Timing } from "./timing"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
