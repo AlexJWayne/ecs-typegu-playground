@@ -32,7 +32,7 @@ function createInstanceData(): Infer<Instance> {
   return {
     pos: vec2f(-0.5, 0),
     initialVelocity: vec2f(0, 0.8),
-    lifetime: 10,
+    lifetime: 1,
     radius: 0.1,
   }
 }

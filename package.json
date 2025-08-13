@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@typegpu/noise": "^0.1.0",
     "bitecs": "github:NateTheGreatt/bitECS#rc-0-4-0",
     "tsx": "^4.20.3",
     "typegpu": "^0.7.0"

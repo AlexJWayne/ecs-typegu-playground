@@ -4,13 +4,21 @@ import tgpu, {
   type TgpuRoot,
   type VertexFlag,
 } from "typegpu"
-import { type WgslArray, arrayOf, f32, struct, vec2f } from "typegpu/data"
+import {
+  type Infer,
+  type WgslArray,
+  arrayOf,
+  f32,
+  struct,
+  vec2f,
+} from "typegpu/data"
 
 import { randomRange } from "../../jelleyfish-rockets/math"
 
 import { type MassInstance, massesInstanceLayout } from "../mass/render"
 import { Timing } from "../timing"
 
+import { Instance, Uniforms } from "./data"
 import { fragShader } from "./frag"
 import { createUpdateShader } from "./update"
 import { vertShader } from "./vert"
@@ -22,33 +30,19 @@ const NY = 4
 const N = NX * NY
 console.log(N.toLocaleString(), "particles")
 
-const Instance = struct({
-  pos: vec2f,
-  vel: vec2f,
-})
-export type Instance = typeof Instance
-
-const Uniforms = struct({
-  deltaTime: f32,
-})
-export type Uniforms = typeof Uniforms
-
 const instanceLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(Instance, n),
   "instance",
 )
 
-function createInstanceData() {
-  const side = Math.random() > 0.5 ? 1 : -1
+function createInstanceData(): Infer<Instance> {
+  const lifetime = 5
   return {
-    pos: vec2f(
-      randomOnZero(0.2) + 0.6 * side, //
-      randomOnZero(0.15),
-    ),
-    vel: vec2f(
-      0, //
-      randomRange(0.6, 1) * side,
-    ),
+    seed: Math.random(),
+    pos: vec2f(),
+    vel: vec2f(),
+    lifetime,
+    age: Math.random() * lifetime,
   }
 }
 
@@ -61,13 +55,15 @@ export function setupParticles(
     .createBuffer(arrayOf(Instance, N))
     .$usage("vertex", "storage")
 
-  const moveShader = createUpdateShader({
+  const updateShader = createUpdateShader({
     instances: instancesBuffer.as("mutable"),
     masses: massesBuffer.as("readonly"),
     uniforms: uniformsBuffer.as("readonly"),
   })
+  console.log(tgpu.resolve({ externals: { updateShader } }))
+
   const movePipeline = root["~unstable"]
-    .withCompute(moveShader)
+    .withCompute(updateShader)
     .createPipeline()
 
   const renderPipeline = root["~unstable"]
@@ -75,6 +71,8 @@ export function setupParticles(
     .withFragment(fragShader, {
       format: presentationFormat,
       blend: {
+        // color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+        // alpha: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
         color: { srcFactor: "src-alpha", dstFactor: "one" },
         alpha: { srcFactor: "src-alpha", dstFactor: "one" },
       },
@@ -90,7 +88,11 @@ export function setupParticles(
 
   function renderParticles(ctx: GPUCanvasContext) {
     movePipeline.dispatchWorkgroups(NX, NY)
-    uniformsBuffer.write({ deltaTime: Timing.deltaTime })
+    uniformsBuffer.write({
+      deltaTime: Timing.deltaTime,
+      elapsed: Timing.elapsed,
+    })
+    // instancesBuffer.read().then((buffer) => console.log(buffer[0].pos.x))
 
     renderPipeline
       .withColorAttachment({
@@ -110,3 +112,4 @@ export function setupParticles(
 export function randomOnZero(max: number): number {
   return (Math.random() * 2 - 1) * max
 }
+export { Instance }

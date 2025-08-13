@@ -89,7 +89,7 @@ function main() {
     Timing.update()
     renderParticles(ctx)
     renderMasses(ctx, world)
-    renderSpawners(ctx)
+    // renderSpawners(ctx)
 
     requestAnimationFrame(render)
   }
