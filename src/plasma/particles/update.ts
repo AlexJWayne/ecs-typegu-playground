@@ -1,14 +1,6 @@
 import { randf } from "@typegpu/noise"
 import tgpu, { type TgpuBufferMutable, type TgpuBufferReadonly } from "typegpu"
-import {
-  type WgslArray,
-  builtin,
-  f32,
-  struct,
-  u32,
-  vec2f,
-  vec3f,
-} from "typegpu/data"
+import { type WgslArray, builtin, struct, vec2f } from "typegpu/data"
 import { length, pow, select } from "typegpu/std"
 
 import { type MassInstance, massesCount } from "../mass/render"
@@ -38,7 +30,7 @@ export function createUpdateShader({
     let pos = instances.$[idx].pos
     let vel = instances.$[idx].vel
 
-    randf.seed(instances.$[idx].seed + (uniforms.$.elapsed % 10_000))
+    randf.seed(idx / instances.$.length)
 
     for (let i = 0; i < massesCount; i++) {
       const massValue = masses.$[i].mass
@@ -73,7 +65,7 @@ export function createUpdateShader({
 }
 
 const bounce = tgpu.fn(
-  [vec2f, vec2f],
+  [vec2f, vec2f], // These being unnamed here isn't ideal.
   struct({ vel: vec2f, pos: vec2f }),
 )((pos, vel) => {
   const r = vel.x > 0 && pos.x > 1
@@ -103,10 +95,9 @@ const birth = tgpu.fn(
   Instance,
 )((instance) => {
   return Instance({
-    seed: instance.seed,
     lifetime: instance.lifetime,
     pos: randf.inUnitCircle().mul(0.05).add(vec2f(-0.6, 0)),
     vel: randf.inUnitCircle().mul(0.3).add(vec2f(0.5)),
-    age: 0,
+    age: instance.age - instance.lifetime,
   })
 })

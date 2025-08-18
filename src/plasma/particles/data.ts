@@ -1,7 +1,6 @@
 import { f32, struct, vec2f } from "typegpu/data"
 
 export const Instance = struct({
-  seed: f32,
   pos: vec2f,
   vel: vec2f,
   lifetime: f32,

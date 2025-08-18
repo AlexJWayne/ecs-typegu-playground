@@ -4,16 +4,7 @@ import tgpu, {
   type TgpuRoot,
   type VertexFlag,
 } from "typegpu"
-import {
-  type Infer,
-  type WgslArray,
-  arrayOf,
-  f32,
-  struct,
-  vec2f,
-} from "typegpu/data"
-
-import { randomRange } from "../../jelleyfish-rockets/math"
+import { type Infer, type WgslArray, arrayOf, vec2f } from "typegpu/data"
 
 import { type MassInstance, massesInstanceLayout } from "../mass/render"
 import { Timing } from "../timing"
@@ -38,7 +29,6 @@ const instanceLayout = tgpu.vertexLayout(
 function createInstanceData(): Infer<Instance> {
   const lifetime = 5
   return {
-    seed: Math.random(),
     pos: vec2f(),
     vel: vec2f(),
     lifetime,

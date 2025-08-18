@@ -96,4 +96,4 @@ function main() {
   render()
 }
 
-if (location.search === "?plasma") main()
+main()
