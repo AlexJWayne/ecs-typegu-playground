@@ -1,9 +1,10 @@
 import { randf } from "@typegpu/noise"
 import tgpu, { type TgpuBufferMutable, type TgpuBufferReadonly } from "typegpu"
-import { type WgslArray, builtin, struct, vec2f } from "typegpu/data"
+import { type WgslArray, builtin, struct, u32, vec2f } from "typegpu/data"
 import { length, pow, select } from "typegpu/std"
 
 import { type MassInstance, massesCount } from "../mass/render"
+import { SpawnerStruct } from "../spawners/data"
 
 import { Instance, Uniforms } from "./data"
 
@@ -55,7 +56,7 @@ export function createUpdateShader({
     pos = pos.add(vel.mul(uniforms.$.deltaTime))
 
     if (instances.$[idx].age >= instances.$[idx].lifetime) {
-      instances.$[idx] = birth(instances.$[idx])
+      instances.$[idx] = birth(uniforms.$.spawner, instances.$[idx])
     } else {
       instances.$[idx].pos = pos
       instances.$[idx].vel = vel
@@ -91,13 +92,13 @@ const bounce = tgpu.fn(
 })
 
 const birth = tgpu.fn(
-  [Instance],
+  [SpawnerStruct, Instance],
   Instance,
-)((instance) => {
+)((spawner, instance) => {
   return Instance({
     lifetime: instance.lifetime,
-    pos: randf.inUnitCircle().mul(0.05).add(vec2f(-0.6, 0)),
-    vel: randf.inUnitCircle().mul(0.3).add(vec2f(0.5)),
-    age: instance.age - instance.lifetime,
+    pos: spawner.pos.add(randf.inUnitCircle().mul(spawner.radius)),
+    vel: spawner.initialVel,
+    age: instance.age - spawner.lifetime,
   })
 })

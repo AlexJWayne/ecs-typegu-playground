@@ -1,8 +1,10 @@
+import { type World, query } from "bitecs"
 import tgpu, { type TgpuRoot } from "typegpu"
 import { type Infer, arrayOf, f32, struct, vec2f } from "typegpu/data"
 
 import { Timing } from "../timing"
 
+import { Spawner } from "./component"
 import { fragShader } from "./frag"
 import { vertShader } from "./vert"
 
@@ -13,7 +15,7 @@ const N = 32
 const Instance = struct({
   pos: vec2f,
   lifetime: f32,
-  initialVelocity: vec2f,
+  initialVel: vec2f,
   radius: f32,
 })
 export type Instance = typeof Instance
@@ -30,10 +32,10 @@ const instanceLayout = tgpu.vertexLayout(
 
 function createInstanceData(): Infer<Instance> {
   return {
-    pos: vec2f(-0.5, 0),
-    initialVelocity: vec2f(0, 0.8),
-    lifetime: 1,
-    radius: 0.1,
+    pos: vec2f(),
+    initialVel: vec2f(),
+    lifetime: 0,
+    radius: 0,
   }
 }
 
@@ -48,8 +50,8 @@ export function setupSpawners(root: TgpuRoot) {
     .withFragment(fragShader, {
       format: presentationFormat,
       blend: {
-        color: { srcFactor: "src-alpha", dstFactor: "one" },
-        alpha: { srcFactor: "src-alpha", dstFactor: "one" },
+        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+        alpha: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
       },
     })
     .createPipeline()
@@ -60,8 +62,21 @@ export function setupSpawners(root: TgpuRoot) {
   }
   resetSpawners()
 
-  function renderSpawners(ctx: GPUCanvasContext) {
+  function renderSpawners(ctx: GPUCanvasContext, world: World) {
     uniformsBuffer.write({ deltaTime: Timing.deltaTime })
+    for (const [i, eid] of query(world, [Spawner]).entries()) {
+      instancesBuffer.writePartial([
+        {
+          idx: i,
+          value: {
+            pos: Spawner.pos[eid],
+            initialVel: Spawner.initialVel[eid],
+            lifetime: Spawner.lifetime[eid],
+            radius: Spawner.radius[eid],
+          },
+        },
+      ])
+    }
 
     renderPipeline
       .withColorAttachment({

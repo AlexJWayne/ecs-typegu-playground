@@ -6,6 +6,8 @@ export const fragShader = tgpu["~unstable"].fragmentFn({
   in: { uv: vec2f },
   out: vec4f,
 })(({ uv }) => {
-  let a = clamp(1 - length(uv), 0, 1)
-  return vec4f(1, 0, 0, a)
+  let d = clamp(1 - length(uv), 0, 1)
+  let a = d
+
+  return vec4f(a, a, a, 1)
 })

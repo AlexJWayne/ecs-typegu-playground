@@ -21,7 +21,7 @@ export const vertShader = tgpu["~unstable"].vertexFn({
   },
 })(({ idx, pos, vel, lifetime, age }) => {
   let localPos = quadVert(idx).mul(SIZE)
-  localPos.x *= 1 + length(vel) * 6
+  localPos.x *= 1 + length(vel) * 10
   localPos.y *= 1 + length(vel) * -0.4
 
   const heading = atan2(vel.y, vel.x)

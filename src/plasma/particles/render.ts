@@ -6,7 +6,10 @@ import tgpu, {
 } from "typegpu"
 import { type Infer, type WgslArray, arrayOf, vec2f } from "typegpu/data"
 
+import { Position } from "../components"
 import { type MassInstance, massesInstanceLayout } from "../mass/render"
+import { Spawner } from "../spawners/component"
+import { SpawnerStruct } from "../spawners/data"
 import { Timing } from "../timing"
 
 import { Instance, Uniforms } from "./data"
@@ -17,17 +20,16 @@ import { vertShader } from "./vert"
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 
 const NX = Math.pow(2, 16) - 1
-const NY = 4
+const NY = 1 //4
 const N = NX * NY
-console.log(N.toLocaleString(), "particles")
+console.log(N.toLocaleString(), "particles per spawner")
 
 const instanceLayout = tgpu.vertexLayout(
   (n: number) => arrayOf(Instance, n),
   "instance",
 )
 
-function createInstanceData(): Infer<Instance> {
-  const lifetime = 5
+function createInstanceData(lifetime: number): Infer<Instance> {
   return {
     pos: vec2f(),
     vel: vec2f(),
@@ -36,10 +38,16 @@ function createInstanceData(): Infer<Instance> {
   }
 }
 
-export function setupParticles(
-  root: TgpuRoot,
-  massesBuffer: TgpuBuffer<WgslArray<MassInstance>> & VertexFlag & StorageFlag,
-) {
+export type ParticlesRenderer = ReturnType<typeof setupParticles>
+export function setupParticles({
+  root,
+  massesBuffer,
+  spawnerEid,
+}: {
+  root: TgpuRoot
+  massesBuffer: TgpuBuffer<WgslArray<MassInstance>> & VertexFlag & StorageFlag
+  spawnerEid: number
+}) {
   const uniformsBuffer = root.createBuffer(Uniforms).$usage("storage")
   const instancesBuffer = root
     .createBuffer(arrayOf(Instance, N))
@@ -50,7 +58,7 @@ export function setupParticles(
     masses: massesBuffer.as("readonly"),
     uniforms: uniformsBuffer.as("readonly"),
   })
-  console.log(tgpu.resolve({ externals: { updateShader } }))
+  // console.log(tgpu.resolve({ externals: { updateShader } }))
 
   const movePipeline = root["~unstable"]
     .withCompute(updateShader)
@@ -61,8 +69,6 @@ export function setupParticles(
     .withFragment(fragShader, {
       format: presentationFormat,
       blend: {
-        // color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-        // alpha: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
         color: { srcFactor: "src-alpha", dstFactor: "one" },
         alpha: { srcFactor: "src-alpha", dstFactor: "one" },
       },
@@ -72,7 +78,10 @@ export function setupParticles(
     .with(massesInstanceLayout, massesBuffer)
 
   function resetParticles() {
-    instancesBuffer.write(Array.from({ length: N }).map(createInstanceData))
+    const lifetime = Spawner.lifetime[spawnerEid]
+    instancesBuffer.write(
+      Array.from({ length: N }).map(() => createInstanceData(lifetime)),
+    )
   }
   resetParticles()
 
@@ -81,8 +90,14 @@ export function setupParticles(
     uniformsBuffer.write({
       deltaTime: Timing.deltaTime,
       elapsed: Timing.elapsed,
+      spawner: {
+        pos: Position[spawnerEid],
+        initialVel: Spawner.initialVel[spawnerEid],
+        radius: Spawner.radius[spawnerEid],
+        lifetime: Spawner.lifetime[spawnerEid],
+      },
     })
-    // instancesBuffer.read().then((buffer) => console.log(buffer[0].pos.x))
+    // instancesBuffer.read().then(([v]) => console.log(v))
 
     renderPipeline
       .withColorAttachment({
@@ -99,7 +114,4 @@ export function setupParticles(
   }
 }
 
-export function randomOnZero(max: number): number {
-  return (Math.random() * 2 - 1) * max
-}
 export { Instance }

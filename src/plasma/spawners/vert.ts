@@ -14,7 +14,7 @@ export const vertShader = tgpu["~unstable"].vertexFn({
     uv: vec2f,
   },
 })(({ idx, pos, radius }) => {
-  let localPos = quadVert(idx).mul(radius)
+  const localPos = quadVert(idx).mul(radius)
   const worldPos = pos.add(localPos)
 
   return {

@@ -6,7 +6,11 @@ import { Position } from "./components"
 import { Mass, addMass } from "./mass/component"
 import { setupMasses } from "./mass/render"
 import { setupParticles } from "./particles/render"
-import { addSpawner } from "./spawners/component"
+import {
+  addSpawner,
+  observeSpawnerCreation,
+  renderSpawners,
+} from "./spawners/component"
 import { setupSpawners } from "./spawners/render"
 import { Timing } from "./timing"
 
@@ -62,34 +66,34 @@ function setMousePosition(event?: MouseEvent): void {
 function main() {
   setupCanvas()
   const { renderMasses, massesBuffer } = setupMasses(root)
-  const { renderParticles, resetParticles } = setupParticles(root, massesBuffer)
-  const { renderSpawners } = setupSpawners(root)
 
   world = createWorld()
   addMass(world, vec2f(0, 0), 0.5)
-  addMass(world, vec2f(-0.5, -0.5), 0.25)
-  addMass(world, vec2f(0.5, -0.5), 0.25)
-  addMass(world, vec2f(-0.5, 0.5), 0.25)
-  addMass(world, vec2f(0.5, 0.5), 0.25)
+  // addMass(world, vec2f(-0.5, -0.5), 0.25)
+  // addMass(world, vec2f(0.5, -0.5), 0.25)
+  // addMass(world, vec2f(-0.5, 0.5), 0.25)
+  // addMass(world, vec2f(0.5, 0.5), 0.25)
 
+  observeSpawnerCreation(root, world, massesBuffer)
   addSpawner(world, {
-    pos: vec2f(0.5, 0),
-    initialVel: vec2f(0, 0.8),
+    pos: vec2f(0.6, 0),
+    initialVel: vec2f(-0.3, 0.5),
+    radius: 0.3,
+    lifetime: 1,
+  })
+  addSpawner(world, {
+    pos: vec2f(-0.6, 0),
+    initialVel: vec2f(0.3, -0.5),
     radius: 0.1,
     lifetime: 10,
   })
 
-  document.getElementById("reset")!.onclick = () => {
-    setMousePosition()
-    resetParticles()
-  }
-
   Timing.update()
   function render() {
     Timing.update()
-    renderParticles(ctx)
+    renderSpawners(ctx, world)
+    // renderSpawners(ctx, world)
     renderMasses(ctx, world)
-    // renderSpawners(ctx)
 
     requestAnimationFrame(render)
   }
