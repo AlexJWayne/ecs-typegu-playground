@@ -1,9 +1,10 @@
 import { randf } from "@typegpu/noise"
 import tgpu, { type TgpuBufferMutable, type TgpuBufferReadonly } from "typegpu"
 import { type WgslArray, builtin, struct, u32, vec2f } from "typegpu/data"
-import { length, pow, select } from "typegpu/std"
+import { cos, length, pow, select, sin } from "typegpu/std"
 
 import { type MassInstance, massesCount } from "../mass/render"
+import { polarToCartesian } from "../shader-lib"
 import { SpawnerStruct } from "../spawners/data"
 
 import { Instance, Uniforms } from "./data"
@@ -55,7 +56,11 @@ export function createUpdateShader({
     pos = bounced.pos
     pos = pos.add(vel.mul(uniforms.$.deltaTime))
 
-    if (instances.$[idx].age >= instances.$[idx].lifetime) {
+    const isExpired = instances.$[idx].age >= instances.$[idx].lifetime
+    // const isFirstBorn =
+    //   instances.$[idx].age <= 0
+
+    if (isExpired) {
       instances.$[idx] = birth(uniforms.$.spawner, instances.$[idx])
     } else {
       instances.$[idx].pos = pos
@@ -98,7 +103,17 @@ const birth = tgpu.fn(
   return Instance({
     lifetime: instance.lifetime,
     pos: spawner.pos.add(randf.inUnitCircle().mul(spawner.radius)),
-    vel: spawner.initialVel,
+    vel: polarToCartesian(
+      vec2f(
+        randf.sample() *
+          (spawner.initialVel.maxTheta - spawner.initialVel.minTheta) +
+          spawner.initialVel.minTheta,
+        randf.sample() *
+          (spawner.initialVel.maxSpeed - spawner.initialVel.minSpeed) +
+          spawner.initialVel.minSpeed,
+      ),
+    ),
+
     age: instance.age - spawner.lifetime,
   })
 })

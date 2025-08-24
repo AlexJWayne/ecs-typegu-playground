@@ -28,3 +28,12 @@ export const rotateVec2 = tgpu.fn(
     vec.x * sinAngle + vec.y * cosAngle,
   )
 })
+
+export const polarToCartesian = tgpu.fn(
+  [vec2f],
+  vec2f,
+)((polar) => {
+  const theta = polar.x
+  const r = polar.y
+  return vec2f(r * cos(theta), r * sin(theta))
+})

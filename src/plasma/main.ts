@@ -5,13 +5,12 @@ import { vec2f } from "typegpu/data"
 import { Position } from "./components"
 import { Mass, addMass } from "./mass/component"
 import { setupMasses } from "./mass/render"
-import { setupParticles } from "./particles/render"
+import { polarToCartesian } from "./shader-lib"
 import {
   addSpawner,
   observeSpawnerCreation,
   renderSpawners,
 } from "./spawners/component"
-import { setupSpawners } from "./spawners/render"
 import { Timing } from "./timing"
 
 export const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
@@ -75,29 +74,50 @@ function main() {
   // addMass(world, vec2f(0.5, 0.5), 0.25)
 
   observeSpawnerCreation(root, world, massesBuffer)
-  addSpawner(world, {
-    pos: vec2f(0.6, 0),
-    initialVel: vec2f(-0.3, 0.5),
-    radius: 0.3,
-    lifetime: 1,
-  })
-  addSpawner(world, {
-    pos: vec2f(-0.6, 0),
-    initialVel: vec2f(0.3, -0.5),
-    radius: 0.1,
-    lifetime: 10,
-  })
+  addSpawnersRing(world)
 
   Timing.update()
   function render() {
     Timing.update()
     renderSpawners(ctx, world)
-    // renderSpawners(ctx, world)
     renderMasses(ctx, world)
 
     requestAnimationFrame(render)
   }
   render()
+}
+
+// function addSpawners1(world: World) {
+//   addSpawner(world, {
+//     pos: vec2f(0, 0.6),
+//     initialVel: vec2f(Math.PI / 2, 0.8),
+//     radius: 0.3,
+//     lifetime: 2,
+//   })
+//   addSpawner(world, {
+//     pos: vec2f(-0.6, 0),
+//     initialVel: vec2f(-Math.PI, 0.5),
+//     radius: 0.15,
+//     lifetime: 10,
+//   })
+// }
+
+function addSpawnersRing(world: World) {
+  const TAU = Math.PI * 2
+  const count = 7
+  for (let i = 0; i < count; i++) {
+    addSpawner(world, {
+      pos: polarToCartesian(vec2f((i * TAU) / count, 0.6)),
+      initialVel: {
+        minTheta: (i * TAU) / count + 1.1,
+        maxTheta: (i * TAU) / count + 1,
+        minSpeed: 0.7,
+        maxSpeed: 0.7,
+      },
+      radius: 0.02,
+      lifetime: 25,
+    })
+  }
 }
 
 main()

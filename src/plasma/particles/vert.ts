@@ -30,7 +30,7 @@ export const vertShader = tgpu["~unstable"].vertexFn({
   const worldPos = pos.add(localPos)
 
   return {
-    pos: vec4f(worldPos, 0, 1),
+    pos: vec4f(select(vec2f(), worldPos, age > 0), 0, 1),
     uv: quadVert(idx),
     completion: select(clamp(age / lifetime, 0, 1), 0, lifetime === 0),
   }

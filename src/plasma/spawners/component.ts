@@ -13,10 +13,10 @@ import { Position } from "../components"
 import type { MassInstance } from "../mass/render"
 import { type ParticlesRenderer, setupParticles } from "../particles/render"
 
+import { SpawnerStruct } from "./data"
+
 export const Spawner = {
-  lifetime: [] as number[],
-  initialVel: [] as v2f[],
-  radius: [] as number[],
+  instance: [] as SpawnerStruct[],
   renderer: [] as ParticlesRenderer[],
 }
 
@@ -44,16 +44,19 @@ export function addSpawner(
   }: {
     pos: v2f
     lifetime: number
-    initialVel: v2f
+    initialVel: SpawnerStruct["initialVel"]
     radius: number
   },
 ): void {
   const eid = addEntity(world)
 
   Position[eid] = pos
-  Spawner.lifetime[eid] = lifetime
-  Spawner.initialVel[eid] = initialVel
-  Spawner.radius[eid] = radius
+  Spawner.instance[eid] = SpawnerStruct({
+    pos,
+    lifetime,
+    initialVel,
+    radius,
+  })
 
   addComponents(world, eid, [Position, Spawner])
 }

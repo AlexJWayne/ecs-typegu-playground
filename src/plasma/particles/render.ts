@@ -78,7 +78,7 @@ export function setupParticles({
     .with(massesInstanceLayout, massesBuffer)
 
   function resetParticles() {
-    const lifetime = Spawner.lifetime[spawnerEid]
+    const { lifetime } = Spawner.instance[spawnerEid]
     instancesBuffer.write(
       Array.from({ length: N }).map(() => createInstanceData(lifetime)),
     )
@@ -91,10 +91,8 @@ export function setupParticles({
       deltaTime: Timing.deltaTime,
       elapsed: Timing.elapsed,
       spawner: {
+        ...Spawner.instance[spawnerEid],
         pos: Position[spawnerEid],
-        initialVel: Spawner.initialVel[spawnerEid],
-        radius: Spawner.radius[spawnerEid],
-        lifetime: Spawner.lifetime[spawnerEid],
       },
     })
     // instancesBuffer.read().then(([v]) => console.log(v))
