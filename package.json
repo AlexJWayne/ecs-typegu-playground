@@ -12,13 +12,19 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.12",
     "@typegpu/noise": "^0.7.0",
+    "@types/react-dom": "^19.1.7",
     "bitecs": "github:NateTheGreatt/bitECS#rc-0-4-0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.12",
     "tsx": "^4.20.3",
     "typegpu": "^0.7.1"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@vitejs/plugin-react-swc": "^4.0.1",
     "@webgpu/types": "^0.1.64",
     "prettier": "^3.6.2",
     "typescript": "^5.9.0",

@@ -1,42 +1,14 @@
 <html>
   <head>
-    <title>Foo</title>
-    <script src="./src/plasma/main.ts" type="module"></script>
-    <style>
-      html,
-      body {
-        background-color: #111;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      #container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      }
-
-      #canvas {
-        background-color: #000;
-      }
-
-      button {
-        padding: 8px 16px;
-        margin: 16px;
-        background-color: #333;
-        border: 0;
-        color: #888;
-      }
-    </style>
+    <title>TypeGPU Particle Toy</title>
+    <script src="./src/main.ts" type="module"></script>
+    <script src="./src/controls/main.tsx" type="module"></script>
+    <link rel="stylesheet" href="./index.css" />
   </head>
-  <body>
-    <div id="container">
-      <canvas id="canvas"></canvas>
-      <!-- <button id="reset">Reset</button> -->
+  <body class="bg-neutral-900 m-0 p-0 flex justify-center items-center">
+    <div class="flex justify-center items-center">
+      <canvas id="canvas" class="bg-black"></canvas>
+      <div id="root"></div>
     </div>
   </body>
 </html>

@@ -62,7 +62,7 @@ function setMousePosition(event?: MouseEvent): void {
   }
 }
 
-function main() {
+export function bootstrapRenderer(): World {
   setupCanvas()
   const { renderMasses, massesBuffer } = setupMasses(root)
 
@@ -85,6 +85,8 @@ function main() {
     requestAnimationFrame(render)
   }
   render()
+
+  return world
 }
 
 // function addSpawners1(world: World) {
@@ -119,5 +121,3 @@ function addSpawnersRing(world: World) {
     })
   }
 }
-
-main()

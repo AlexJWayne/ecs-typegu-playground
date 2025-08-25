@@ -90,9 +90,9 @@ const bounce = tgpu.fn(
   )
 
   const newPos = pos
-  newPos.x = select(newPos.x, +2 - newPos.x, pos.x > 1)
+  newPos.x = select(newPos.x, 2 - newPos.x, pos.x > 1)
   newPos.x = select(newPos.x, -2 - newPos.x, pos.x < -1)
-  newPos.y = select(newPos.y, +2 - newPos.y, pos.y > 1)
+  newPos.y = select(newPos.y, 2 - newPos.y, pos.y > 1)
   newPos.y = select(newPos.y, -2 - newPos.y, pos.y < -1)
 
   return {
