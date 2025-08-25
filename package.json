@@ -12,10 +12,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@typegpu/noise": "^0.1.0",
+    "@typegpu/noise": "^0.7.0",
     "bitecs": "github:NateTheGreatt/bitECS#rc-0-4-0",
     "tsx": "^4.20.3",
-    "typegpu": "^0.7.0"
+    "typegpu": "^0.7.1"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
