@@ -1,5 +1,5 @@
 import tgpu from "typegpu"
-import { builtin, f32, vec2f, vec4f } from "typegpu/data"
+import { builtin, f32, u32, vec2f, vec4f } from "typegpu/data"
 import { atan2, clamp, cos, length, select, sin } from "typegpu/std"
 
 import { quadVert, rotateVec2 } from "../shader-lib"
@@ -13,13 +13,14 @@ export const vertShader = tgpu["~unstable"].vertexFn({
     vel: vec2f,
     lifetime: f32,
     age: f32,
+    born: u32,
   },
   out: {
     pos: builtin.position,
     uv: vec2f,
     completion: f32,
   },
-})(({ idx, pos, vel, lifetime, age }) => {
+})(({ idx, pos, vel, lifetime, age, born }) => {
   let localPos = quadVert(idx).mul(SIZE)
   localPos.x *= 1 + length(vel) * 10
   localPos.y *= 1 + length(vel) * -0.4
@@ -30,7 +31,7 @@ export const vertShader = tgpu["~unstable"].vertexFn({
   const worldPos = pos.add(localPos)
 
   return {
-    pos: vec4f(select(vec2f(), worldPos, age > 0), 0, 1),
+    pos: vec4f(select(vec2f(), worldPos, born === 1), 0, 1),
     uv: quadVert(idx),
     completion: select(clamp(age / lifetime, 0, 1), 0, lifetime === 0),
   }

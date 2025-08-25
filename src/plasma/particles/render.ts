@@ -9,7 +9,6 @@ import { type Infer, type WgslArray, arrayOf, vec2f } from "typegpu/data"
 import { Position } from "../components"
 import { type MassInstance, massesInstanceLayout } from "../mass/render"
 import { Spawner } from "../spawners/component"
-import { SpawnerStruct } from "../spawners/data"
 import { Timing } from "../timing"
 
 import { Instance, Uniforms } from "./data"
@@ -31,6 +30,7 @@ const instanceLayout = tgpu.vertexLayout(
 
 function createInstanceData(lifetime: number): Infer<Instance> {
   return {
+    born: 0,
     pos: vec2f(),
     vel: vec2f(),
     lifetime,
@@ -95,7 +95,9 @@ export function setupParticles({
         pos: Position[spawnerEid],
       },
     })
-    // instancesBuffer.read().then(([v]) => console.log(v))
+    // if (Math.random() < 0.005) {
+    //   instancesBuffer.read().then(([v]) => console.log(v.age))
+    // }
 
     renderPipeline
       .withColorAttachment({

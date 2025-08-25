@@ -2,6 +2,7 @@ import { type World, query } from "bitecs"
 import tgpu, { type TgpuRoot } from "typegpu"
 import { type Infer, arrayOf, f32, struct, vec2f } from "typegpu/data"
 
+import { Position } from "../components"
 import { Timing } from "../timing"
 
 import { Spawner } from "./component"
@@ -69,7 +70,7 @@ export function setupSpawners(root: TgpuRoot) {
         {
           idx: i,
           value: {
-            pos: Spawner.pos[eid],
+            pos: Position[eid],
             initialVel: Spawner.initialVel[eid],
             lifetime: Spawner.lifetime[eid],
             radius: Spawner.radius[eid],

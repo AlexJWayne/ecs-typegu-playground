@@ -1,7 +1,7 @@
 import { randf } from "@typegpu/noise"
 import tgpu, { type TgpuBufferMutable, type TgpuBufferReadonly } from "typegpu"
-import { type WgslArray, builtin, struct, u32, vec2f } from "typegpu/data"
-import { cos, length, pow, select, sin } from "typegpu/std"
+import { type WgslArray, builtin, struct, vec2f } from "typegpu/data"
+import { length, pow, select } from "typegpu/std"
 
 import { type MassInstance, massesCount } from "../mass/render"
 import { polarToCartesian } from "../shader-lib"
@@ -32,6 +32,11 @@ export function createUpdateShader({
     let pos = instances.$[idx].pos
     let vel = instances.$[idx].vel
 
+    if (instances.$[idx].age < 0) {
+      instances.$[idx].age += uniforms.$.deltaTime
+      return
+    }
+
     randf.seed(idx / instances.$.length)
 
     for (let i = 0; i < massesCount; i++) {
@@ -51,16 +56,16 @@ export function createUpdateShader({
       vel = vel.add(mouseDiff.mul(force))
     }
 
-    const bounced = bounce(pos, vel)
+    const bounced = bounce({ pos, vel })
     vel = bounced.vel
     pos = bounced.pos
     pos = pos.add(vel.mul(uniforms.$.deltaTime))
 
-    const isExpired = instances.$[idx].age >= instances.$[idx].lifetime
-    // const isFirstBorn =
-    //   instances.$[idx].age <= 0
+    const age = instances.$[idx].age
+    const isExpired = age >= instances.$[idx].lifetime
+    const isFirstBorn = age <= 0 && age + uniforms.$.deltaTime >= 0
 
-    if (isExpired) {
+    if (isExpired || isFirstBorn) {
       instances.$[idx] = birth(uniforms.$.spawner, instances.$[idx])
     } else {
       instances.$[idx].pos = pos
@@ -71,9 +76,9 @@ export function createUpdateShader({
 }
 
 const bounce = tgpu.fn(
-  [vec2f, vec2f], // These being unnamed here isn't ideal.
-  struct({ vel: vec2f, pos: vec2f }),
-)((pos, vel) => {
+  [struct({ pos: vec2f, vel: vec2f })],
+  struct({ pos: vec2f, vel: vec2f }),
+)(({ pos, vel }) => {
   const r = vel.x > 0 && pos.x > 1
   const l = vel.x < 0 && pos.x < -1
   const t = vel.y > 0 && pos.y > 1
@@ -101,6 +106,7 @@ const birth = tgpu.fn(
   Instance,
 )((spawner, instance) => {
   return Instance({
+    born: 1,
     lifetime: instance.lifetime,
     pos: spawner.pos.add(randf.inUnitCircle().mul(spawner.radius)),
     vel: polarToCartesian(
@@ -114,6 +120,6 @@ const birth = tgpu.fn(
       ),
     ),
 
-    age: instance.age - spawner.lifetime,
+    age: instance.age % spawner.lifetime,
   })
 })
