@@ -1,22 +1,117 @@
-import { type World, observe, onAdd, onRemove, query } from "bitecs"
-import { useEffect, useState } from "react"
+import {
+  type EntityId,
+  type World,
+  observe,
+  onAdd,
+  onRemove,
+  query,
+} from "bitecs"
+import { type ReactNode, useEffect, useState } from "react"
 
-import { Position } from "../components"
+import { Position, Selected } from "../components"
+import { Mass } from "../mass/component"
 import { Spawner } from "../spawners/component"
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./components/accordion"
+import { Slider } from "./components/slider"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/tabs"
+
 export function App({ world }: { world: World }) {
-  const entities = useEcsQuery(world, Spawner)
+  const spawers = useEcsQuery(world, Spawner)
+  const attractors = useEcsQuery(world, Mass)
+
+  const [selectedTab, setSelectedTab] = useState("spawners")
+  const [selectedEntity, setSelectedEntity] = useState<EntityId | null>(null)
 
   return (
-    <div className="w-64 p-2">
-      <ul className="text-neutral-400 font-mono">
-        {entities.map((eid) => (
-          <li key={eid}>
-            #{eid} [{Position[eid].x.toFixed(2)}, {Position[eid].y.toFixed(2)}]
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Tabs
+      className="w-64 h-[1000px] pl-4"
+      value={selectedTab}
+      onValueChange={setSelectedTab}
+    >
+      <TabsList className="w-full">
+        <TabsTrigger value="spawners">Spawners</TabsTrigger>
+        <TabsTrigger value="attractors">Attractors</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="spawners">
+        <Accordion
+          type="single"
+          collapsible
+          value={selectedEntity === null ? "" : selectedEntity.toString()}
+          onValueChange={(eidStr) => {
+            const eid = eidStr ? +eidStr : null
+            Selected.set(world, eid)
+            setSelectedEntity(eid)
+          }}
+        >
+          {spawers.map((eid, i) => (
+            <AccordionItem key={eid} value={eid.toString()}>
+              <AccordionTrigger>#{i + 1}</AccordionTrigger>
+              <AccordionContent>
+                <PropGroup name="Position: X,Y">
+                  <PropSlider
+                    min={-1}
+                    max={1}
+                    value={[Position[eid].x]}
+                    onChange={(value) => (Position[eid].x = value[0])}
+                  />
+                  <PropSlider
+                    min={-1}
+                    max={1}
+                    value={[Position[eid].y]}
+                    onChange={(value) => (Position[eid].y = value[0])}
+                  />
+                </PropGroup>
+
+                <PropGroup name="Velocity: Angle, Speed">
+                  <PropSlider
+                    min={0}
+                    max={Math.PI * 2}
+                    value={[
+                      Spawner.instance[eid].initialVel.minTheta,
+                      Spawner.instance[eid].initialVel.maxTheta,
+                    ]}
+                    onChange={(value) => {
+                      Spawner.instance[eid].initialVel.minTheta = value[0]
+                      Spawner.instance[eid].initialVel.maxTheta = value[1]
+                    }}
+                  />
+                  <PropSlider
+                    min={0}
+                    max={2}
+                    value={[
+                      Spawner.instance[eid].initialVel.minSpeed,
+                      Spawner.instance[eid].initialVel.maxSpeed,
+                    ]}
+                    onChange={(value) => {
+                      Spawner.instance[eid].initialVel.minSpeed = value[0]
+                      Spawner.instance[eid].initialVel.maxSpeed = value[1]
+                    }}
+                  />
+                </PropGroup>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </TabsContent>
+
+      <TabsContent value="attractors">
+        <Accordion type="single" collapsible>
+          {attractors.map((eid, i) => (
+            <AccordionItem key={eid} value={eid.toString()}>
+              <AccordionTrigger>#{i + 1}</AccordionTrigger>
+              <AccordionContent>Not Implemented</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </TabsContent>
+    </Tabs>
   )
 }
 
@@ -33,4 +128,39 @@ function useEcsQuery(world: World, component: unknown) {
   }, [world])
 
   return entities
+}
+
+function PropGroup({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div>{name}</div>
+      {children}
+    </div>
+  )
+}
+
+function PropSlider({
+  min,
+  max,
+  value,
+  onChange,
+}: {
+  min: number
+  max: number
+  value: number[]
+  onChange: (value: number[]) => void
+}) {
+  const [valueState, setValueState] = useState(value)
+  return (
+    <Slider
+      min={min}
+      max={max}
+      value={valueState}
+      step={0.001}
+      onValueChange={(value) => {
+        setValueState(value)
+        onChange(value)
+      }}
+    />
+  )
 }

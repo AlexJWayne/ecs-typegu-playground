@@ -12,14 +12,22 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-slider": "^1.3.6",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@tailwindcss/vite": "^4.1.12",
     "@typegpu/noise": "^0.7.0",
     "@types/react-dom": "^19.1.7",
     "bitecs": "github:NateTheGreatt/bitECS#rc-0-4-0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.542.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.12",
     "tsx": "^4.20.3",
+    "tw-animate-css": "^1.3.8",
     "typegpu": "^0.7.1"
   },
   "devDependencies": {

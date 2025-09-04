@@ -106,7 +106,7 @@ export function bootstrapRenderer(): World {
 
 function addSpawnersRing(world: World) {
   const TAU = Math.PI * 2
-  const count = 7
+  const count = 3
   for (let i = 0; i < count; i++) {
     addSpawner(world, {
       pos: polarToCartesian(vec2f((i * TAU) / count, 0.6)),
