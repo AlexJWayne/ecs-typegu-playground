@@ -5,12 +5,15 @@ import {
   onAdd,
   onRemove,
   query,
+  removeEntity,
 } from "bitecs"
 import { type ReactNode, useEffect, useState } from "react"
+import { vec2f } from "typegpu/data"
 
 import { Position, Selected } from "../components"
 import { Mass } from "../mass/component"
-import { Spawner } from "../spawners/component"
+import { polarToCartesian } from "../shader-lib"
+import { Spawner, addSpawner } from "../spawners/component"
 
 import {
   Accordion,
@@ -18,12 +21,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./components/accordion"
+import { Button } from "./components/button"
 import { Slider } from "./components/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/tabs"
 
 export function App({ world }: { world: World }) {
   const spawers = useEcsQuery(world, Spawner)
-  const attractors = useEcsQuery(world, Mass)
+  const warpers = useEcsQuery(world, Mass)
 
   const [selectedTab, setSelectedTab] = useState("spawners")
   const [selectedEntity, setSelectedEntity] = useState<EntityId | null>(null)
@@ -36,7 +40,7 @@ export function App({ world }: { world: World }) {
     >
       <TabsList className="w-full">
         <TabsTrigger value="spawners">Spawners</TabsTrigger>
-        <TabsTrigger value="attractors">Attractors</TabsTrigger>
+        <TabsTrigger value="warpers">Warpers</TabsTrigger>
       </TabsList>
 
       <TabsContent value="spawners">
@@ -54,6 +58,31 @@ export function App({ world }: { world: World }) {
             <AccordionItem key={eid} value={eid.toString()}>
               <AccordionTrigger>#{i + 1}</AccordionTrigger>
               <AccordionContent>
+                <div className="flex gap-2 my-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => mirrorSpawnerX(world, eid)}
+                    className="flex-1"
+                  >
+                    Mirror X
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => mirrorSpawnerY(world, eid)}
+                    className="flex-1"
+                  >
+                    Mirror Y
+                  </Button>
+                </div>
+                <div className="flex gap-2 my-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => removeEntity(world, eid)}
+                    className="flex-1"
+                  >
+                    Delete
+                  </Button>
+                </div>
                 <PropGroup name="Position: X,Y">
                   <PropSlider
                     min={-1}
@@ -73,10 +102,10 @@ export function App({ world }: { world: World }) {
                   <PropSlider
                     min={0}
                     max={Math.PI * 2}
-                    value={[Spawner.instance[eid].initialVel.direction]}
-                    onChange={(value) => {
-                      Spawner.instance[eid].initialVel.direction = value[0]
-                    }}
+                    value={[-Spawner.instance[eid].initialVel.direction]}
+                    onChange={(value) =>
+                      (Spawner.instance[eid].initialVel.direction = -value[0])
+                    }
                   />
                 </PropGroup>
                 <PropGroup name="Spread">
@@ -84,9 +113,9 @@ export function App({ world }: { world: World }) {
                     min={0}
                     max={Math.PI * 2}
                     value={[Spawner.instance[eid].initialVel.spread]}
-                    onChange={(value) => {
-                      Spawner.instance[eid].initialVel.spread = value[0]
-                    }}
+                    onChange={(value) =>
+                      (Spawner.instance[eid].initialVel.spread = value[0])
+                    }
                   />
                 </PropGroup>
                 <PropGroup name="Speed">
@@ -103,18 +132,60 @@ export function App({ world }: { world: World }) {
                     }}
                   />
                 </PropGroup>
+                <PropGroup name="Size">
+                  <PropSlider
+                    min={0.01}
+                    max={0.5}
+                    value={[Spawner.instance[eid].radius]}
+                    onChange={(value) =>
+                      (Spawner.instance[eid].radius = value[0])
+                    }
+                  />
+                </PropGroup>
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
+        <div className="flex gap-2 my-2">
+          <Button
+            variant="secondary"
+            onClick={() => clickAddSpawner(world)}
+            className="flex-1"
+          >
+            Add
+          </Button>
+        </div>
       </TabsContent>
 
-      <TabsContent value="attractors">
+      <TabsContent value="warpers">
         <Accordion type="single" collapsible>
-          {attractors.map((eid, i) => (
+          {warpers.map((eid, i) => (
             <AccordionItem key={eid} value={eid.toString()}>
               <AccordionTrigger>#{i + 1}</AccordionTrigger>
-              <AccordionContent>Not Implemented</AccordionContent>
+              <AccordionContent>
+                <PropGroup name="Position: X,Y">
+                  <PropSlider
+                    min={-1}
+                    max={1}
+                    value={[Position[eid].x]}
+                    onChange={(value) => (Position[eid].x = value[0])}
+                  />
+                  <PropSlider
+                    min={-1}
+                    max={1}
+                    value={[Position[eid].y]}
+                    onChange={(value) => (Position[eid].y = value[0])}
+                  />
+                </PropGroup>
+                <PropGroup name="Force">
+                  <PropSlider
+                    min={-1}
+                    max={1}
+                    value={[-Mass[eid]]}
+                    onChange={(value) => (Mass[eid] = -value[0])}
+                  />
+                </PropGroup>
+              </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
@@ -171,4 +242,44 @@ function PropSlider({
       }}
     />
   )
+}
+
+function clickAddSpawner(world: World) {
+  addSpawner(world, {
+    pos: vec2f(),
+    initialVel: {
+      direction: 0,
+      spread: 0,
+      minSpeed: 0,
+      maxSpeed: 0.1,
+    },
+    radius: 0.05,
+    lifetime: 25,
+  })
+}
+
+function mirrorSpawnerX(world: World, eid: EntityId) {
+  let direction = Math.PI - Spawner.instance[eid].initialVel.direction
+  if (direction < 0) direction += Math.PI * 2
+  if (direction > Math.PI * 2) direction -= Math.PI * 2
+
+  addSpawner(world, {
+    pos: vec2f(-Position[eid].x, Position[eid].y),
+    initialVel: { ...Spawner.instance[eid].initialVel, direction },
+    radius: Spawner.instance[eid].radius,
+    lifetime: Spawner.instance[eid].lifetime,
+  })
+}
+
+function mirrorSpawnerY(world: World, eid: EntityId) {
+  let direction = -Spawner.instance[eid].initialVel.direction
+  if (direction < 0) direction += Math.PI * 2
+  if (direction > Math.PI * 2) direction -= Math.PI * 2
+
+  addSpawner(world, {
+    pos: vec2f(Position[eid].x, -Position[eid].y),
+    initialVel: { ...Spawner.instance[eid].initialVel, direction },
+    radius: Spawner.instance[eid].radius,
+    lifetime: Spawner.instance[eid].lifetime,
+  })
 }
