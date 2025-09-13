@@ -106,13 +106,13 @@ export function bootstrapRenderer(): World {
 
 function addSpawnersRing(world: World) {
   const TAU = Math.PI * 2
-  const count = 3
+  const count = 1
   for (let i = 0; i < count; i++) {
     addSpawner(world, {
       pos: polarToCartesian(vec2f((i * TAU) / count, 0.6)),
       initialVel: {
-        minTheta: (i * TAU) / count + 1.1,
-        maxTheta: (i * TAU) / count + 1,
+        direction: (i * TAU) / count + 1.1,
+        spread: (5 * Math.PI) / 180,
         minSpeed: 0.7,
         maxSpeed: 0.7,
       },

@@ -69,22 +69,30 @@ export function App({ world }: { world: World }) {
                   />
                 </PropGroup>
 
-                <PropGroup name="Velocity: Angle, Speed">
+                <PropGroup name="Direction">
                   <PropSlider
                     min={0}
                     max={Math.PI * 2}
-                    value={[
-                      Spawner.instance[eid].initialVel.minTheta,
-                      Spawner.instance[eid].initialVel.maxTheta,
-                    ]}
+                    value={[Spawner.instance[eid].initialVel.direction]}
                     onChange={(value) => {
-                      Spawner.instance[eid].initialVel.minTheta = value[0]
-                      Spawner.instance[eid].initialVel.maxTheta = value[1]
+                      Spawner.instance[eid].initialVel.direction = value[0]
                     }}
                   />
+                </PropGroup>
+                <PropGroup name="Spread">
                   <PropSlider
                     min={0}
-                    max={2}
+                    max={Math.PI * 2}
+                    value={[Spawner.instance[eid].initialVel.spread]}
+                    onChange={(value) => {
+                      Spawner.instance[eid].initialVel.spread = value[0]
+                    }}
+                  />
+                </PropGroup>
+                <PropGroup name="Speed">
+                  <PropSlider
+                    min={0}
+                    max={1}
                     value={[
                       Spawner.instance[eid].initialVel.minSpeed,
                       Spawner.instance[eid].initialVel.maxSpeed,

@@ -111,9 +111,8 @@ const birth = tgpu.fn(
     pos: spawner.pos.add(randf.inUnitCircle().mul(spawner.radius)),
     vel: polarToCartesian(
       vec2f(
-        randf.sample() *
-          (spawner.initialVel.maxTheta - spawner.initialVel.minTheta) +
-          spawner.initialVel.minTheta,
+        spawner.initialVel.direction +
+          (randf.sample() - 0.5) * spawner.initialVel.spread,
         randf.sample() *
           (spawner.initialVel.maxSpeed - spawner.initialVel.minSpeed) +
           spawner.initialVel.minSpeed,
