@@ -12,7 +12,7 @@ import { vec2f } from "typegpu/data"
 
 import { Position, Selected } from "../components"
 import { Mass } from "../mass/component"
-import { polarToCartesian } from "../shader-lib"
+import { polarToCartesian, rotateVec2 } from "../shader-lib"
 import { Spawner, addSpawner } from "../spawners/component"
 
 import {
@@ -22,6 +22,7 @@ import {
   AccordionTrigger,
 } from "./components/accordion"
 import { Button } from "./components/button"
+import { Input } from "./components/input"
 import { Slider } from "./components/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/tabs"
 
@@ -31,6 +32,7 @@ export function App({ world }: { world: World }) {
 
   const [selectedTab, setSelectedTab] = useState("spawners")
   const [selectedEntity, setSelectedEntity] = useState<EntityId | null>(null)
+  const [arrayTimes, setArrayTimes] = useState<number>(3)
 
   return (
     <Tabs
@@ -58,20 +60,38 @@ export function App({ world }: { world: World }) {
             <AccordionItem key={eid} value={eid.toString()}>
               <AccordionTrigger>#{i + 1}</AccordionTrigger>
               <AccordionContent>
-                <div className="flex gap-2 my-2">
+                <div className="flex gap-2 my-2 items-center">
+                  <div>Mirror:</div>
                   <Button
                     variant="secondary"
-                    onClick={() => mirrorSpawnerX(world, eid)}
+                    onClick={() => mirrorSpawner(world, eid, "x")}
                     className="flex-1"
                   >
-                    Mirror X
+                    X
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={() => mirrorSpawnerY(world, eid)}
+                    onClick={() => mirrorSpawner(world, eid, "y")}
                     className="flex-1"
                   >
-                    Mirror Y
+                    Y
+                  </Button>
+                </div>
+                <div className="flex gap-2 my-2 items-center">
+                  <div>Radial:</div>
+                  <Input
+                    type="number"
+                    value={arrayTimes}
+                    onChange={(e) =>
+                      setArrayTimes(parseInt(e.target.value) || 0)
+                    }
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => arraySpawner(world, eid, arrayTimes)}
+                    className="flex-1"
+                  >
+                    Clone
                   </Button>
                 </div>
                 <div className="flex gap-2 my-2">
@@ -270,28 +290,40 @@ function clickAddSpawner(world: World) {
   })
 }
 
-function mirrorSpawnerX(world: World, eid: EntityId) {
-  let direction = Math.PI - Spawner.instance[eid].initialVel.direction
+function mirrorSpawner(world: World, eid: EntityId, axis: "x" | "y") {
+  const mirrorAngle = axis === "x" ? Math.PI : 0
+  let direction = mirrorAngle - Spawner.instance[eid].initialVel.direction
   if (direction < 0) direction += Math.PI * 2
   if (direction > Math.PI * 2) direction -= Math.PI * 2
 
+  const pos =
+    axis === "x"
+      ? vec2f(-Position[eid].x, Position[eid].y)
+      : vec2f(Position[eid].x, -Position[eid].y)
+
   addSpawner(world, {
-    pos: vec2f(-Position[eid].x, Position[eid].y),
+    pos,
     initialVel: { ...Spawner.instance[eid].initialVel, direction },
     radius: Spawner.instance[eid].radius,
     lifetime: Spawner.instance[eid].lifetime,
   })
 }
 
-function mirrorSpawnerY(world: World, eid: EntityId) {
-  let direction = -Spawner.instance[eid].initialVel.direction
-  if (direction < 0) direction += Math.PI * 2
-  if (direction > Math.PI * 2) direction -= Math.PI * 2
+const TAU = Math.PI * 2
+function arraySpawner(world: World, eid: EntityId, times: number) {
+  if (times <= 1) return
 
-  addSpawner(world, {
-    pos: vec2f(Position[eid].x, -Position[eid].y),
-    initialVel: { ...Spawner.instance[eid].initialVel, direction },
-    radius: Spawner.instance[eid].radius,
-    lifetime: Spawner.instance[eid].lifetime,
-  })
+  for (let i = 1; i < times; i++) {
+    const angle = i * (TAU / times)
+    let direction = Spawner.instance[eid].initialVel.direction + angle
+    if (direction < 0) direction += Math.PI * 2
+    if (direction > Math.PI * 2) direction -= Math.PI * 2
+
+    addSpawner(world, {
+      pos: rotateVec2(Position[eid], angle),
+      initialVel: { ...Spawner.instance[eid].initialVel, direction },
+      radius: Spawner.instance[eid].radius,
+      lifetime: Spawner.instance[eid].lifetime,
+    })
+  }
 }
