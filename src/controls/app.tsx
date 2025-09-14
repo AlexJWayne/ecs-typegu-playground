@@ -142,6 +142,17 @@ export function App({ world }: { world: World }) {
                     }
                   />
                 </PropGroup>
+                <PropGroup name="Lifetime">
+                  <PropSlider
+                    min={0.25}
+                    max={60}
+                    value={[Spawner.instance[eid].lifetime]}
+                    onChange={(value) => {
+                      Spawner.instance[eid].lifetime = value[0]
+                      Spawner.renderer[eid].resetParticles()
+                    }}
+                  />
+                </PropGroup>
               </AccordionContent>
             </AccordionItem>
           ))}
@@ -199,7 +210,7 @@ function useEcsQuery(world: World, component: unknown) {
 
   useEffect(() => {
     observe(world, onAdd(component), (eid) =>
-      setEntities((entities) => [...entities, eid]),
+      setEntities((entities) => Array.from(new Set([...entities, eid]))),
     )
     observe(world, onRemove(component), (eid) =>
       setEntities((entities) => entities.filter((id) => id !== eid)),
@@ -211,7 +222,7 @@ function useEcsQuery(world: World, component: unknown) {
 
 function PropGroup({ name, children }: { name: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1 mb-4">
       <div>{name}</div>
       {children}
     </div>
@@ -232,6 +243,7 @@ function PropSlider({
   const [valueState, setValueState] = useState(value)
   return (
     <Slider
+      className="my-0.5"
       min={min}
       max={max}
       value={valueState}
