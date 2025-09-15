@@ -229,12 +229,16 @@ function useEcsQuery(world: World, component: unknown) {
   const [entities, setEntities] = useState(() => query(world, [component]))
 
   useEffect(() => {
-    observe(world, onAdd(component), (eid) =>
-      setEntities((entities) => Array.from(new Set([...entities, eid]))),
+    const unsubscribeAdd = observe(world, onAdd(component), (eid) =>
+      setEntities((entities) => [...entities, eid]),
     )
-    observe(world, onRemove(component), (eid) =>
+    const unsubscribeRemove = observe(world, onRemove(component), (eid) =>
       setEntities((entities) => entities.filter((id) => id !== eid)),
     )
+    return () => {
+      unsubscribeAdd()
+      unsubscribeRemove()
+    }
   }, [world])
 
   return entities
